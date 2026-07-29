@@ -1,0 +1,30 @@
+{
+  "version": 8,
+  "name": "Train Live Map Voyager",
+  "sources": {
+    "osm-voyager": {
+      "type": "raster",
+      "tiles": [
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "attribution": "© OpenStreetMap contributors, © CARTO"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#e8eaed"
+      }
+    },
+    {
+      "id": "osm-voyager",
+      "type": "raster",
+      "source": "osm-voyager"
+    }
+  ]
+}

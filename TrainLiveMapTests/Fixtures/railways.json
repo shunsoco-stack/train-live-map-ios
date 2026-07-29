@@ -1,0 +1,54 @@
+{
+  "lines": [
+    {
+      "id": "tokaido",
+      "odptId": "odpt.Railway:JR-East.Tokaido",
+      "name": "東海道線",
+      "color": "#f68b1e",
+      "coordinates": [
+        [
+          [139.7671, 35.6812],
+          [139.7380, 35.6285],
+          [139.6178, 35.4662]
+        ]
+      ]
+    }
+  ],
+  "options": [
+    {
+      "id": "tokaido",
+      "name": "東海道線",
+      "category": "東海道方面",
+      "color": "#f68b1e",
+      "aliases": ["上野東京ライン"],
+      "coverage": "realtime",
+      "coverageNote": null,
+      "kind": "line",
+      "available": true
+    },
+    {
+      "id": "sagami",
+      "name": "相模線",
+      "category": "東海道方面",
+      "color": "#009793",
+      "aliases": [],
+      "coverage": "unavailable",
+      "coverageNote": "ODPT列車位置情報の対象外",
+      "kind": "line",
+      "available": false
+    },
+    {
+      "id": "chuo-rapid",
+      "name": "中央線快速電車",
+      "category": "中央方面",
+      "color": "#f15a22",
+      "aliases": ["中央快速"],
+      "coverage": "limited",
+      "coverageNote": "一部区間のみ",
+      "kind": "line",
+      "available": true
+    }
+  ],
+  "generatedAt": "2026-07-28T11:27:09.884Z",
+  "source": "odpt"
+}

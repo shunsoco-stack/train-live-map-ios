@@ -1,0 +1,13 @@
+{
+  "serviceStatus": {
+    "lineName": "東海道線（東京〜横浜）",
+    "severity": "minor",
+    "message": "一部列車に遅れが出ています",
+    "updatedAt": "2026-07-28T20:42:50+09:00",
+    "dataAccuracy": "actual"
+  },
+  "isMock": false,
+  "source": "odpt",
+  "fallback": false,
+  "notice": null
+}
