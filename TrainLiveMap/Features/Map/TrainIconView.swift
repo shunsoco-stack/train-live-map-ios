@@ -2,6 +2,10 @@ import SwiftUI
 
 struct TrainIconView: View {
     let train: TrainLocation
+    var isSelected = false
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var face: TrainFace {
         TrainPresentation.face(for: train)
@@ -11,81 +15,155 @@ struct TrainIconView: View {
         VStack(spacing: 1) {
             ZStack(alignment: .top) {
                 trainBody
-                    .padding(.top, train.delayMinutes > 0 || train.status == .suspended ? 9 : 0)
+                    .padding(.top, hasStatusBadge ? 13 : 0)
 
-                if train.status == .suspended {
-                    statusBadge("見合わせ", color: Color(hex: "#2563eb"))
-                        .offset(y: -1)
-                } else if train.delayMinutes > 0 {
-                    statusBadge("+\(train.delayMinutes)分", color: Color(hex: "#b91c1c"))
-                        .offset(y: -1)
+                if let text = TrainPresentation.suspensionBadgeText(for: train) {
+                    speechBadge(
+                        text,
+                        color: Color(hex: "#2563eb"),
+                        symbol: "!"
+                    )
+                } else if let text = TrainPresentation.delayBubbleText(for: train) {
+                    speechBadge(
+                        text,
+                        color: Color(hex: "#be123c"),
+                        symbol: nil
+                    )
                 }
             }
 
             Text(train.direction.displayText)
-                .font(.system(size: 10, weight: .black, design: .rounded))
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(.ultraThickMaterial, in: Capsule())
+                .font(RailFont.extraBold(.caption2))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(directionColor, in: Capsule())
                 .overlay {
-                    Capsule().stroke(.black.opacity(0.2), lineWidth: 0.5)
+                    Capsule().stroke(.white, lineWidth: 1)
                 }
+                .shadow(color: .black.opacity(0.35), radius: 1, y: 1)
         }
-        .frame(width: 72, height: 76)
+        .frame(width: 78, height: 86)
+        .scaleEffect(isSelected ? 1.12 : 1)
+        .animation(
+            reduceMotion ? nil : .spring(response: 0.25),
+            value: isSelected
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(TrainPresentation.accessibilityLabel(for: train))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var hasStatusBadge: Bool {
+        TrainPresentation.delayBubbleText(for: train) != nil
+            || TrainPresentation.suspensionBadgeText(for: train) != nil
+    }
+
+    private var directionColor: Color {
+        switch train.direction {
+        case .inbound: RailTheme.inboundBlue
+        case .outbound: RailTheme.outboundOrange
+        }
     }
 
     private var trainBody: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color(hex: train.lineColor))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(.white, lineWidth: 2)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(.white, lineWidth: isSelected ? 3 : 2)
                 }
-                .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+                .overlay {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 17, style: .continuous)
+                            .stroke(Color.yellow, lineWidth: 3)
+                            .padding(-4)
+                    }
+                }
+                .shadow(
+                    color: isSelected
+                        ? Color.yellow.opacity(0.65)
+                        : Color.black.opacity(0.38),
+                    radius: isSelected ? 7 : 3,
+                    y: 2
+                )
 
             VStack(spacing: 1) {
                 HStack(spacing: 3) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.92))
+                        .fill(Color.white.opacity(reduceTransparency ? 1 : 0.94))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.92))
+                        .fill(Color.white.opacity(reduceTransparency ? 1 : 0.94))
                 }
                 .frame(height: 12)
                 .padding(.horizontal, 7)
                 .padding(.top, 5)
 
                 TrainFaceView(face: face)
-                    .frame(height: 22)
+                    .frame(height: 23)
 
                 HStack {
-                    Circle().fill(Color.white.opacity(0.95))
+                    Circle().fill(Color.white)
                     Spacer()
-                    Circle().fill(Color.white.opacity(0.95))
+                    Circle().fill(Color.white)
                 }
                 .frame(height: 5)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 4)
             }
         }
-        .frame(width: 50, height: 49)
+        .frame(width: 52, height: 51)
     }
 
-    private func statusBadge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.system(size: 9, weight: .black, design: .rounded))
+    private func speechBadge(
+        _ text: String,
+        color: Color,
+        symbol: String?
+    ) -> some View {
+        VStack(spacing: -1) {
+            HStack(spacing: 2) {
+                if let symbol {
+                    Text(symbol)
+                        .font(RailFont.extraBold(.caption2))
+                        .accessibilityHidden(true)
+                }
+                Text(text)
+                    .font(RailFont.extraBold(.caption2))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
             .foregroundStyle(.white)
-            .lineLimit(1)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color, in: Capsule())
             .overlay {
                 Capsule().stroke(.white, lineWidth: 1.5)
             }
-            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+
+            SpeechPointer()
+                .fill(color)
+                .frame(width: 9, height: 5)
+                .overlay {
+                    SpeechPointer()
+                        .stroke(.white, lineWidth: 1)
+                }
+        }
+        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+        .offset(y: -2)
+    }
+}
+
+private struct SpeechPointer: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -114,10 +192,21 @@ private struct TrainFaceView: View {
             switch face {
             case .smiling:
                 var mouth = Path()
-                mouth.move(to: CGPoint(x: size.width * 0.38, y: size.height * 0.56))
+                mouth.move(
+                    to: CGPoint(
+                        x: size.width * 0.38,
+                        y: size.height * 0.56
+                    )
+                )
                 mouth.addQuadCurve(
-                    to: CGPoint(x: size.width * 0.62, y: size.height * 0.56),
-                    control: CGPoint(x: size.width * 0.5, y: size.height * 0.8)
+                    to: CGPoint(
+                        x: size.width * 0.62,
+                        y: size.height * 0.56
+                    ),
+                    control: CGPoint(
+                        x: size.width * 0.5,
+                        y: size.height * 0.8
+                    )
                 )
                 context.stroke(mouth, with: .color(ink), lineWidth: 2)
 
@@ -127,13 +216,11 @@ private struct TrainFaceView: View {
                     with: .color(ink),
                     lineWidth: 2
                 )
-                var mouth = Path()
-                mouth.move(to: CGPoint(x: size.width * 0.39, y: size.height * 0.72))
-                mouth.addQuadCurve(
-                    to: CGPoint(x: size.width * 0.61, y: size.height * 0.72),
-                    control: CGPoint(x: size.width * 0.5, y: size.height * 0.52)
+                context.stroke(
+                    sadMouth(size: size),
+                    with: .color(ink),
+                    lineWidth: 2
                 )
-                context.stroke(mouth, with: .color(ink), lineWidth: 2)
 
             case .sadWithTear:
                 context.stroke(
@@ -141,27 +228,57 @@ private struct TrainFaceView: View {
                     with: .color(ink),
                     lineWidth: 2
                 )
-                var mouth = Path()
-                mouth.move(to: CGPoint(x: size.width * 0.4, y: size.height * 0.72))
-                mouth.addQuadCurve(
-                    to: CGPoint(x: size.width * 0.6, y: size.height * 0.72),
-                    control: CGPoint(x: size.width * 0.5, y: size.height * 0.53)
+                context.stroke(
+                    sadMouth(size: size),
+                    with: .color(ink),
+                    lineWidth: 2
                 )
-                context.stroke(mouth, with: .color(ink), lineWidth: 2)
 
-                var tear = Path()
-                tear.move(to: CGPoint(x: size.width * 0.7, y: size.height * 0.46))
-                tear.addQuadCurve(
-                    to: CGPoint(x: size.width * 0.7, y: size.height * 0.72),
-                    control: CGPoint(x: size.width * 0.79, y: size.height * 0.62)
-                )
-                tear.addQuadCurve(
-                    to: CGPoint(x: size.width * 0.7, y: size.height * 0.46),
-                    control: CGPoint(x: size.width * 0.61, y: size.height * 0.62)
-                )
-                context.fill(tear, with: .color(Color(hex: "#38bdf8")))
+                let tearColor = Color(hex: "#38bdf8")
+                for xPosition in [0.29, 0.7] {
+                    var tear = Path()
+                    tear.move(
+                        to: CGPoint(
+                            x: size.width * xPosition,
+                            y: size.height * 0.46
+                        )
+                    )
+                    tear.addQuadCurve(
+                        to: CGPoint(
+                            x: size.width * xPosition,
+                            y: size.height * 0.75
+                        ),
+                        control: CGPoint(
+                            x: size.width * (xPosition + 0.09),
+                            y: size.height * 0.63
+                        )
+                    )
+                    tear.addQuadCurve(
+                        to: CGPoint(
+                            x: size.width * xPosition,
+                            y: size.height * 0.46
+                        ),
+                        control: CGPoint(
+                            x: size.width * (xPosition - 0.09),
+                            y: size.height * 0.63
+                        )
+                    )
+                    context.fill(tear, with: .color(tearColor))
+                }
             }
         }
+    }
+
+    private func sadMouth(size: CGSize) -> Path {
+        var mouth = Path()
+        mouth.move(
+            to: CGPoint(x: size.width * 0.39, y: size.height * 0.72)
+        )
+        mouth.addQuadCurve(
+            to: CGPoint(x: size.width * 0.61, y: size.height * 0.72),
+            control: CGPoint(x: size.width * 0.5, y: size.height * 0.52)
+        )
+        return mouth
     }
 
     private func browsPath(size: CGSize, inward: Bool) -> Path {

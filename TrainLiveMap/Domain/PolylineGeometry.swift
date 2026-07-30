@@ -154,7 +154,8 @@ final class TrainMotionEngine {
     func ingest(
         trains: [TrainLocation],
         railwayLines: [RailwayMapLine],
-        at date: Date
+        at date: Date,
+        motionEnabled: Bool = true
     ) {
         let linesByID = Dictionary(uniqueKeysWithValues: railwayLines.map { ($0.id, $0) })
         let incomingIDs = Set(trains.map(\.id))
@@ -186,7 +187,7 @@ final class TrainMotionEngine {
             let distance = PolylineGeometry(coordinates: [startCoordinate, targetCoordinate])
                 .totalMeters
             let metersPerSecond = max(1, train.speedKmh / 3.6)
-            let duration = distance < 1
+            let duration = !motionEnabled || distance < 1
                 ? 0
                 : min(6.2, max(1.2, distance / metersPerSecond))
 

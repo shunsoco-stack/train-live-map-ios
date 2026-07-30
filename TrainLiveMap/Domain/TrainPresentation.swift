@@ -27,8 +27,20 @@ enum TrainPresentation {
         if train.delayMinutes > 0 {
             components.append("\(train.delayMinutes)分遅れ")
         }
+        components.append(train.currentSegmentText)
         components.append(train.dataAccuracy.label)
         return components.joined(separator: "、")
+    }
+
+    static func delayBubbleText(for train: TrainLocation) -> String? {
+        guard train.status != .suspended, train.delayMinutes > 0 else {
+            return nil
+        }
+        return "+\(train.delayMinutes)分"
+    }
+
+    static func suspensionBadgeText(for train: TrainLocation) -> String? {
+        train.status == .suspended ? "見合わせ" : nil
     }
 
     static func stoppedDurationText(for train: TrainLocation, now: Date = .now) -> String? {
@@ -94,16 +106,20 @@ struct DataSourcePresentation: Equatable {
 
     init(response: TrainsAPIResponse) {
         if response.fallback {
-            title = "フォールバック"
-            detail = response.notice ?? "実データを取得できないため代替データを表示中"
+            title = "モックデータ使用中"
+            detail = response.notice ?? "ODPTライブを取得できないためモックデータを表示中"
             isWarning = true
         } else if response.isMock || response.source == .mock {
-            title = "モック"
+            title = "モックデータ使用中"
             detail = response.notice ?? "モックデータを表示中"
             isWarning = true
+        } else if response.trains.contains(where: { $0.dataAccuracy == .estimated }) {
+            title = "ODPTライブ（位置は駅間推定）"
+            detail = "列車位置はGPS実測ではなく、駅間情報などからの推定です。"
+            isWarning = false
         } else {
-            title = "ODPT API"
-            detail = nil
+            title = "ODPTライブ（実データ）"
+            detail = "APIが実データとして提供した位置です。"
             isWarning = false
         }
     }
@@ -121,6 +137,9 @@ enum RailwayFilterLogic {
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
 
         return options.filter { option in
+            guard option.isSelectable else {
+                return false
+            }
             if favoritesOnly && !favoriteIDs.contains(option.id) {
                 return false
             }

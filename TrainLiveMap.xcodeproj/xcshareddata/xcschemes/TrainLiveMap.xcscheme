@@ -35,6 +35,20 @@
                ReferencedContainer = "container:TrainLiveMap.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "82A9FA82848BFDC787B1B162"
+               BuildableName = "TrainLiveMapUITests.xctest"
+               BlueprintName = "TrainLiveMapUITests"
+               ReferencedContainer = "container:TrainLiveMap.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -62,6 +76,17 @@
                BlueprintIdentifier = "E485B978E90B1AF66EE7F915"
                BuildableName = "TrainLiveMapTests.xctest"
                BlueprintName = "TrainLiveMapTests"
+               ReferencedContainer = "container:TrainLiveMap.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "82A9FA82848BFDC787B1B162"
+               BuildableName = "TrainLiveMapUITests.xctest"
+               BlueprintName = "TrainLiveMapUITests"
                ReferencedContainer = "container:TrainLiveMap.xcodeproj">
             </BuildableReference>
          </TestableReference>

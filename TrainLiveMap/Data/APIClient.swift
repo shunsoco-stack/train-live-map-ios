@@ -4,6 +4,7 @@ enum APIClientError: LocalizedError {
     case invalidURL
     case invalidResponse
     case httpStatus(Int)
+    case serverMessage(statusCode: Int, message: String)
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +14,8 @@ enum APIClientError: LocalizedError {
             "APIから不正な応答を受信しました"
         case let .httpStatus(statusCode):
             "APIがエラーを返しました（HTTP \(statusCode)）"
+        case let .serverMessage(_, message):
+            message
         }
     }
 }
@@ -21,6 +24,11 @@ protocol TrainAPIService: Sendable {
     func fetchTrains() async throws -> TrainsAPIResponse
     func fetchServiceStatus() async throws -> ServiceStatusAPIResponse
     func fetchRailways() async throws -> RailwaysAPIResponse
+    func fetchCommunityReports() async throws -> CommunityReportsAPIResponse
+    func submitCommunityReport(
+        _ vote: CommunityReportVote,
+        reporterID: String
+    ) async throws -> CommunityReportSubmitResponse
 }
 
 final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
@@ -55,24 +63,63 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
         try await fetch(path: "api/railways")
     }
 
-    private func fetch<Response: Decodable>(path: String) async throws -> Response {
+    func fetchCommunityReports() async throws -> CommunityReportsAPIResponse {
+        try await fetch(path: "api/community-reports")
+    }
+
+    func submitCommunityReport(
+        _ vote: CommunityReportVote,
+        reporterID: String
+    ) async throws -> CommunityReportSubmitResponse {
+        try await fetch(
+            path: "api/community-reports",
+            method: "POST",
+            body: try JSONEncoder.trainLiveMap.encode(vote),
+            headers: [
+                "Content-Type": "application/json",
+                "x-community-reporter": reporterID
+            ]
+        )
+    }
+
+    private func fetch<Response: Decodable>(
+        path: String,
+        method: String = "GET",
+        body: Data? = nil,
+        headers: [String: String] = [:]
+    ) async throws -> Response {
         guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else {
             throw APIClientError.invalidURL
         }
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = method
+        request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("TrainLiveMap-iOS/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("TrainLiveMap-iOS/1.1", forHTTPHeaderField: "User-Agent")
+        for (name, value) in headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIClientError.invalidResponse
         }
         guard (200..<300).contains(httpResponse.statusCode) else {
+            if let payload = try? decoder.decode(APIErrorResponse.self, from: data),
+               !payload.error.isEmpty {
+                throw APIClientError.serverMessage(
+                    statusCode: httpResponse.statusCode,
+                    message: payload.error
+                )
+            }
             throw APIClientError.httpStatus(httpResponse.statusCode)
         }
         return try decoder.decode(Response.self, from: data)
     }
+}
+
+private struct APIErrorResponse: Decodable {
+    let error: String
 }
 
 extension JSONDecoder {

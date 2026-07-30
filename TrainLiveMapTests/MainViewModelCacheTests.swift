@@ -67,12 +67,41 @@ final class MainViewModelCacheTests: XCTestCase {
             notice: "フォールバック中"
         )
 
-        XCTAssertEqual(DataSourcePresentation(response: mock).title, "モック")
+        XCTAssertEqual(
+            DataSourcePresentation(response: mock).title,
+            "モックデータ使用中"
+        )
         XCTAssertTrue(DataSourcePresentation(response: mock).isWarning)
-        XCTAssertEqual(DataSourcePresentation(response: fallback).title, "フォールバック")
+        XCTAssertEqual(
+            DataSourcePresentation(response: fallback).title,
+            "モックデータ使用中"
+        )
         XCTAssertEqual(
             DataSourcePresentation(response: fallback).detail,
             "フォールバック中"
         )
+    }
+
+    func testCachedCommunityReportsRemainVisibleAfterFailure() async throws {
+        let cached = try TestFixture.communityResponse
+        let cache = MemoryResponseCache(community: cached)
+        let api = StubAPIService(trainsResult: .failure(TestError.failed))
+        let preferences = UserPreferences(
+            defaults: UserDefaults(
+                suiteName: "community-cache-\(UUID().uuidString)"
+            )!
+        )
+        let viewModel = MainViewModel(
+            api: api,
+            cache: cache,
+            preferences: preferences
+        )
+
+        await viewModel.loadCachedDataIfNeeded()
+        XCTAssertEqual(viewModel.communityReportsResponse, cached)
+        XCTAssertTrue(viewModel.communityReportsAreStale)
+        await viewModel.refreshCommunityReports()
+        XCTAssertEqual(viewModel.communityReportsResponse, cached)
+        XCTAssertTrue(viewModel.communityReportsAreStale)
     }
 }

@@ -100,6 +100,39 @@ final class PolylineGeometryTests: XCTestCase {
         )
     }
 
+    func testReduceMotionSnapsToClampedTargetWithoutAnimation() throws {
+        let engine = TrainMotionEngine()
+        let receivedAt = Date(timeIntervalSince1970: 1_000)
+        let train = estimatedTrain(
+            id: "reduce-motion",
+            direction: .outbound,
+            coordinates: [
+                MapCoordinate(longitude: 139.0, latitude: 35.0),
+                MapCoordinate(longitude: 140.0, latitude: 35.0)
+            ]
+        )
+
+        engine.ingest(
+            trains: [train],
+            railwayLines: [],
+            at: receivedAt,
+            motionEnabled: false
+        )
+
+        XCTAssertFalse(engine.hasActiveMotion(at: receivedAt))
+        let initial = try XCTUnwrap(
+            engine.positions(at: receivedAt)["reduce-motion"]
+        )
+        let later = try XCTUnwrap(
+            engine.positions(
+                at: receivedAt.addingTimeInterval(60)
+            )["reduce-motion"]
+        )
+        XCTAssertEqual(initial, later)
+        XCTAssertGreaterThanOrEqual(initial.longitude, 139)
+        XCTAssertLessThanOrEqual(initial.longitude, 140)
+    }
+
     private func estimatedTrain(
         id: String,
         direction: TrainDirection,

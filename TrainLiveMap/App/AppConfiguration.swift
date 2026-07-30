@@ -4,6 +4,7 @@ struct AppConfiguration: Equatable {
     static let productionBaseURL = URL(string: "https://train-live-map.vercel.app")!
 
     let apiBaseURL: URL
+    let apnsRegistrationURL: URL?
     let adMobAppID: String?
     let adMobBannerUnitID: String?
 
@@ -14,6 +15,9 @@ struct AppConfiguration: Equatable {
             ?? productionBaseURL
         return AppConfiguration(
             apiBaseURL: baseURL,
+            apnsRegistrationURL: normalizedString(
+                dictionary["APNSRegistrationURL"]
+            ).flatMap(URL.init(string:)),
             adMobAppID: normalizedString(dictionary["GADApplicationIdentifier"]),
             adMobBannerUnitID: normalizedString(dictionary["AdMobBannerUnitID"])
         )
@@ -29,6 +33,11 @@ struct AppConfiguration: Equatable {
 
     static var isRunningTests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            && !isUITesting
+    }
+
+    static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-UITesting")
     }
 
     private static func normalizedString(_ value: Any?) -> String? {

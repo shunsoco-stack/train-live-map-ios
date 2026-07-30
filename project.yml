@@ -41,6 +41,7 @@ targets:
         excludes:
           - Info.plist
           - Resources
+          - TrainLiveMap.entitlements
       - path: TrainLiveMap/Resources
         buildPhase: resources
     configFiles:
@@ -59,6 +60,7 @@ targets:
         SUPPORTS_MACCATALYST: false
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
+        CODE_SIGN_ENTITLEMENTS: TrainLiveMap/TrainLiveMap.entitlements
         OTHER_LDFLAGS: "$(inherited) -ObjC"
     dependencies:
       - package: MapLibre
@@ -86,17 +88,33 @@ targets:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Train Live Map.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Train Live Map"
         BUNDLE_LOADER: "$(TEST_HOST)"
 
+  TrainLiveMapUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: TrainLiveMapUITests
+    dependencies:
+      - target: TrainLiveMap
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shunsoco.trainlivemap.uitests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: TrainLiveMap
+
 schemes:
   TrainLiveMap:
     build:
       targets:
         TrainLiveMap: all
         TrainLiveMapTests: [test]
+        TrainLiveMapUITests: [test]
     test:
       gatherCoverageData: true
       debugEnabled: false
       targets:
         - name: TrainLiveMapTests
+          parallelizable: false
+        - name: TrainLiveMapUITests
           parallelizable: false
     run:
       config: Debug

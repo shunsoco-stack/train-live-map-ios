@@ -1,0 +1,20 @@
+{
+  "summaries": [
+    {
+      "lineId": "tokaido",
+      "status": "delayed",
+      "delayMinutes": 7,
+      "voteCount": 5,
+      "counts": {
+        "onTime": 1,
+        "delayed": 3,
+        "suspended": 1
+      },
+      "updatedAt": "2026-07-28T20:42:50+09:00"
+    }
+  ],
+  "windowMinutes": 30,
+  "cooldownSeconds": 60,
+  "persistent": true,
+  "votingEnabled": true
+}

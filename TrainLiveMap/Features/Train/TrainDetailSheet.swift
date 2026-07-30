@@ -14,10 +14,12 @@ struct TrainDetailSheet: View {
 
                     if train.dataAccuracy != .actual {
                         Label(
-                            "表示位置は駅間情報などから求めた位置推定です。GPSの現在地ではありません。",
+                            train.dataAccuracy == .mock
+                                ? "モックデータです。実際の運行や位置を示すものではありません。"
+                                : "ODPTライブを駅間情報などから求めた位置推定です。GPSの現在地ではありません。",
                             systemImage: "location.magnifyingglass"
                         )
-                        .font(.footnote)
+                        .font(RailFont.regular(.footnote))
                         .foregroundStyle(.secondary)
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -35,11 +37,14 @@ struct TrainDetailSheet: View {
                     Button("閉じる") {
                         dismiss()
                     }
+                    .font(RailFont.bold(.body))
+                    .accessibilityLabel("列車の詳細を閉じる")
                 }
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .mplusAppTypography()
     }
 
     private var hero: some View {
@@ -50,18 +55,19 @@ struct TrainDetailSheet: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(train.lineName)
-                    .font(.title3.bold())
+                    .font(RailFont.extraBold(.title3))
                 Text(train.direction.displayText)
-                    .font(.headline)
+                    .font(RailFont.extraBold(.headline))
+                    .foregroundStyle(directionColor)
                 Text("\(train.destination) 行き")
-                    .font(.subheadline)
+                    .font(RailFont.regular(.subheadline))
                     .foregroundStyle(.secondary)
 
                 Label(
                     train.status.label,
                     systemImage: statusSystemImage
                 )
-                .font(.subheadline.bold())
+                .font(RailFont.bold(.subheadline))
                 .foregroundStyle(statusColor)
             }
             Spacer()
@@ -75,6 +81,7 @@ struct TrainDetailSheet: View {
             DetailRow(label: "路線", value: train.lineName)
             DetailRow(label: "方向", value: train.direction.displayText)
             DetailRow(label: "行き先", value: train.destination)
+            DetailRow(label: "現在の駅間", value: train.currentSegmentText)
             DetailRow(label: "種別", value: train.trainType.label)
             DetailRow(label: "状態", value: train.status.label)
             DetailRow(
@@ -90,6 +97,14 @@ struct TrainDetailSheet: View {
                 )
             )
             DetailRow(label: "データ精度", value: train.dataAccuracy.label)
+            DetailRow(
+                label: "データ区分",
+                value: train.dataAccuracy == .actual
+                    ? "実データ"
+                    : train.dataAccuracy == .estimated
+                        ? "位置推定"
+                        : "モック"
+            )
 
             if train.stoppedSince != nil {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -125,6 +140,12 @@ struct TrainDetailSheet: View {
         case .unknown: .secondary
         }
     }
+
+    private var directionColor: Color {
+        train.direction == .inbound
+            ? RailTheme.inboundBlue
+            : RailTheme.outboundOrange
+    }
 }
 
 private struct DetailRow: View {
@@ -140,7 +161,7 @@ private struct DetailRow: View {
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.trailing)
         }
-        .font(.body)
+        .font(RailFont.regular(.body))
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .overlay(alignment: .bottom) {

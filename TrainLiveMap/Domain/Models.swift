@@ -67,15 +67,23 @@ enum TrainStatus: String, Codable, CaseIterable, Sendable {
     }
 }
 
-enum DataAccuracy: String, Codable, Sendable {
+enum DataAccuracy: String, Codable, CaseIterable, Sendable {
     case actual
     case estimated
     case mock
 
     var label: String {
         switch self {
-        case .actual: "実測"
-        case .estimated: "位置推定"
+        case .actual: "実データ"
+        case .estimated: "推定データ（駅間推定）"
+        case .mock: "モックデータ"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .actual: "実データ"
+        case .estimated: "推定"
         case .mock: "モック"
         }
     }
@@ -119,9 +127,68 @@ struct TrainLocation: Codable, Identifiable, Equatable, Sendable {
     let stoppedSince: Date?
     let dataAccuracy: DataAccuracy
     let routeSegment: RouteSegmentEstimate?
+    /// Future-compatible station identifiers. The current Web API may omit both.
+    let fromStation: String?
+    let toStation: String?
+    /// Raw ODPT rail direction when the backend elects to expose it.
+    let railDirection: String?
+
+    init(
+        id: String,
+        lineId: String,
+        lineName: String,
+        lineColor: String,
+        trainNumber: String?,
+        direction: TrainDirection,
+        destination: String,
+        trainType: TrainType,
+        latitude: Double,
+        longitude: Double,
+        delayMinutes: Int,
+        speedKmh: Double,
+        status: TrainStatus,
+        lastUpdatedAt: Date,
+        stoppedSince: Date?,
+        dataAccuracy: DataAccuracy,
+        routeSegment: RouteSegmentEstimate?,
+        fromStation: String? = nil,
+        toStation: String? = nil,
+        railDirection: String? = nil
+    ) {
+        self.id = id
+        self.lineId = lineId
+        self.lineName = lineName
+        self.lineColor = lineColor
+        self.trainNumber = trainNumber
+        self.direction = direction
+        self.destination = destination
+        self.trainType = trainType
+        self.latitude = latitude
+        self.longitude = longitude
+        self.delayMinutes = delayMinutes
+        self.speedKmh = speedKmh
+        self.status = status
+        self.lastUpdatedAt = lastUpdatedAt
+        self.stoppedSince = stoppedSince
+        self.dataAccuracy = dataAccuracy
+        self.routeSegment = routeSegment
+        self.fromStation = fromStation
+        self.toStation = toStation
+        self.railDirection = railDirection
+    }
 
     var coordinate: MapCoordinate {
         MapCoordinate(longitude: longitude, latitude: latitude)
+    }
+
+    var currentSegmentText: String {
+        if let fromStation, let toStation, !fromStation.isEmpty, !toStation.isEmpty {
+            return "\(fromStation)〜\(toStation)"
+        }
+        if routeSegment != nil || dataAccuracy == .estimated {
+            return "駅間推定（駅名はAPI未提供）"
+        }
+        return "取得できません"
     }
 }
 
@@ -154,20 +221,31 @@ enum ServiceSeverity: String, Codable, Sendable {
     }
 }
 
-struct ServiceStatus: Codable, Equatable, Sendable {
+struct ServiceStatus: Codable, Identifiable, Equatable, Sendable {
+    let lineId: String
     let lineName: String
     let severity: ServiceSeverity
     let message: String
     let updatedAt: Date
     let dataAccuracy: DataAccuracy
+
+    var id: String { lineId }
 }
 
 struct ServiceStatusAPIResponse: Codable, Equatable, Sendable {
     let serviceStatus: ServiceStatus
+    let serviceStatuses: [ServiceStatus]?
     let isMock: Bool
     let source: ProviderSource
     let fallback: Bool
     let notice: String?
+
+    var allStatuses: [ServiceStatus] {
+        guard let serviceStatuses, !serviceStatuses.isEmpty else {
+            return [serviceStatus]
+        }
+        return serviceStatuses
+    }
 }
 
 enum RailwayCoverage: String, Codable, CaseIterable, Sendable {
@@ -210,6 +288,10 @@ struct RailwayFilterOption: Codable, Identifiable, Equatable, Sendable {
     let kind: RailwayKind
     let available: Bool
 
+    var isSelectable: Bool {
+        available && coverage != .unavailable
+    }
+
     var availabilityDescription: String {
         if !available {
             return "地図データを取得できません"
@@ -228,4 +310,8 @@ struct RailwaysAPIResponse: Codable, Equatable, Sendable {
     let options: [RailwayFilterOption]
     let generatedAt: Date
     let source: Source
+
+    var selectableOptions: [RailwayFilterOption] {
+        options.filter(\.isSelectable)
+    }
 }

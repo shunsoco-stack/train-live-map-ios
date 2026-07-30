@@ -28,9 +28,11 @@ final class APIJSONDecodingTests: XCTestCase {
     func testDecodesServiceStatusResponse() throws {
         let response = try TestFixture.serviceResponse
 
+        XCTAssertEqual(response.serviceStatus.lineId, "tokaido")
         XCTAssertEqual(response.serviceStatus.severity, .minor)
         XCTAssertEqual(response.serviceStatus.dataAccuracy, .actual)
         XCTAssertEqual(response.serviceStatus.message, "一部列車に遅れが出ています")
+        XCTAssertEqual(response.allStatuses.count, 2)
     }
 
     func testDecodesRailwayLinesOptionsAvailabilityAndCoverage() throws {
@@ -39,11 +41,24 @@ final class APIJSONDecodingTests: XCTestCase {
         XCTAssertEqual(response.lines.count, 1)
         XCTAssertEqual(response.options.count, 3)
         XCTAssertEqual(response.source, .odpt)
+        XCTAssertEqual(response.lines.first?.color, "#f68b1e")
         let unavailable = try XCTUnwrap(
             response.options.first { $0.id == "sagami" }
         )
         XCTAssertFalse(unavailable.available)
         XCTAssertEqual(unavailable.coverage, .unavailable)
         XCTAssertEqual(unavailable.coverageNote, "ODPT列車位置情報の対象外")
+        XCTAssertEqual(response.selectableOptions.map(\.id), ["tokaido", "chuo-rapid"])
+    }
+
+    func testDecodesCommunityReportsResponse() throws {
+        let response = try TestFixture.communityResponse
+
+        XCTAssertEqual(response.windowMinutes, 30)
+        XCTAssertEqual(response.cooldownSeconds, 60)
+        XCTAssertTrue(response.persistent)
+        XCTAssertTrue(response.votingEnabled)
+        XCTAssertEqual(response.summaries.first?.status, .delayed)
+        XCTAssertEqual(response.summaries.first?.delayMinutes, 7)
     }
 }

@@ -4,6 +4,8 @@
 <dict>
 	<key>APIBaseURL</key>
 	<string>$(API_BASE_URL)</string>
+	<key>APNSRegistrationURL</key>
+	<string>$(APNS_REGISTRATION_URL)</string>
 	<key>AdMobBannerUnitID</key>
 	<string>$(ADMOB_BANNER_UNIT_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -30,6 +32,12 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>MPLUSRounded1c-Regular.ttf</string>
+		<string>MPLUSRounded1c-Bold.ttf</string>
+		<string>MPLUSRounded1c-ExtraBold.ttf</string>
+	</array>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict><key>SKAdNetworkIdentifier</key><string>cstr6suwn9.skadnetwork</string></dict>

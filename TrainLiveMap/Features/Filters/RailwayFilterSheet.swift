@@ -27,7 +27,7 @@ struct RailwayFilterSheet: View {
 
     private var selectedCount: Int {
         options.filter {
-            $0.available && preferences.visibleLineIDs.contains($0.id)
+            $0.isSelectable && preferences.visibleLineIDs.contains($0.id)
         }.count
     }
 
@@ -42,6 +42,7 @@ struct RailwayFilterSheet: View {
                         )
                     }
                     .tint(.yellow)
+                    .font(RailFont.bold(.body))
                     .accessibilityHint("地図と一覧をお気に入り路線だけに絞り込みます")
 
                     HStack(spacing: 12) {
@@ -50,12 +51,14 @@ struct RailwayFilterSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(RailTheme.accent)
+                        .font(RailFont.bold(.body))
                         .minimumTapTarget()
 
                         Button("すべて隠す") {
                             preferences.hideAll()
                         }
                         .buttonStyle(.bordered)
+                        .font(RailFont.bold(.body))
                         .minimumTapTarget()
                     }
                 } footer: {
@@ -67,6 +70,7 @@ struct RailwayFilterSheet: View {
                         HStack {
                             ProgressView()
                             Text("利用可能な路線を確認中…")
+                                .font(RailFont.regular(.body))
                         }
                     }
                 }
@@ -110,19 +114,20 @@ struct RailwayFilterSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Text("\(selectedCount)路線")
-                        .font(.caption.weight(.semibold))
+                        .font(RailFont.bold(.caption))
                         .foregroundStyle(.secondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完了") {
                         dismiss()
                     }
-                    .fontWeight(.bold)
+                    .font(RailFont.bold(.body))
                 }
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .mplusAppTypography()
     }
 
     private var favoritesOnlyBinding: Binding<Bool> {
@@ -154,15 +159,15 @@ private struct RailwayOptionRow: View {
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(option.name)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(option.available ? .primary : .secondary)
+                            .font(RailFont.bold(.body))
+                            .foregroundStyle(.primary)
                         HStack(spacing: 5) {
                             Image(systemName: coverageSymbol)
                                 .accessibilityHidden(true)
                             Text(option.availabilityDescription)
                                 .lineLimit(2)
                         }
-                        .font(.caption2)
+                        .font(RailFont.regular(.caption2))
                         .foregroundStyle(coverageColor)
                     }
 
@@ -176,14 +181,11 @@ private struct RailwayOptionRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(!option.available)
             .frame(minHeight: 50)
             .accessibilityLabel(
                 "\(option.name)、\(option.availabilityDescription)、\(selected ? "表示中" : "非表示")"
             )
-            .accessibilityHint(
-                option.available ? "ダブルタップで表示を切り替えます" : "現在選択できません"
-            )
+            .accessibilityHint("ダブルタップで表示を切り替えます")
 
             Button(action: onToggleFavorite) {
                 Image(systemName: favorite ? "star.fill" : "star")

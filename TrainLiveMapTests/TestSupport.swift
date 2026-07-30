@@ -36,6 +36,15 @@ enum TestFixture {
             )
         }
     }
+
+    static var communityResponse: CommunityReportsAPIResponse {
+        get throws {
+            try JSONDecoder.trainLiveMap.decode(
+                CommunityReportsAPIResponse.self,
+                from: data(named: "community-reports")
+            )
+        }
+    }
 }
 
 private final class FixtureToken {}
@@ -44,15 +53,21 @@ final class StubAPIService: TrainAPIService, @unchecked Sendable {
     var trainsResult: Result<TrainsAPIResponse, Error>
     var serviceResult: Result<ServiceStatusAPIResponse, Error>
     var railwaysResult: Result<RailwaysAPIResponse, Error>
+    var communityResult: Result<CommunityReportsAPIResponse, Error>
+    var submitCommunityResult: Result<CommunityReportSubmitResponse, Error>
 
     init(
         trainsResult: Result<TrainsAPIResponse, Error>,
         serviceResult: Result<ServiceStatusAPIResponse, Error> = .failure(TestError.failed),
-        railwaysResult: Result<RailwaysAPIResponse, Error> = .failure(TestError.failed)
+        railwaysResult: Result<RailwaysAPIResponse, Error> = .failure(TestError.failed),
+        communityResult: Result<CommunityReportsAPIResponse, Error> = .failure(TestError.failed),
+        submitCommunityResult: Result<CommunityReportSubmitResponse, Error> = .failure(TestError.failed)
     ) {
         self.trainsResult = trainsResult
         self.serviceResult = serviceResult
         self.railwaysResult = railwaysResult
+        self.communityResult = communityResult
+        self.submitCommunityResult = submitCommunityResult
     }
 
     func fetchTrains() async throws -> TrainsAPIResponse {
@@ -66,29 +81,51 @@ final class StubAPIService: TrainAPIService, @unchecked Sendable {
     func fetchRailways() async throws -> RailwaysAPIResponse {
         try railwaysResult.get()
     }
+
+    func fetchCommunityReports() async throws -> CommunityReportsAPIResponse {
+        try communityResult.get()
+    }
+
+    func submitCommunityReport(
+        _ vote: CommunityReportVote,
+        reporterID: String
+    ) async throws -> CommunityReportSubmitResponse {
+        try submitCommunityResult.get()
+    }
 }
 
 actor MemoryResponseCache: ResponseCaching {
     var trains: TrainsAPIResponse?
     var service: ServiceStatusAPIResponse?
     var railways: RailwaysAPIResponse?
+    var community: CommunityReportsAPIResponse?
 
     init(
         trains: TrainsAPIResponse? = nil,
         service: ServiceStatusAPIResponse? = nil,
-        railways: RailwaysAPIResponse? = nil
+        railways: RailwaysAPIResponse? = nil,
+        community: CommunityReportsAPIResponse? = nil
     ) {
         self.trains = trains
         self.service = service
         self.railways = railways
+        self.community = community
     }
 
     func loadTrains() async -> TrainsAPIResponse? { trains }
     func loadServiceStatus() async -> ServiceStatusAPIResponse? { service }
     func loadRailways() async -> RailwaysAPIResponse? { railways }
+    func loadCommunityReports() async -> CommunityReportsAPIResponse? {
+        community
+    }
     func saveTrains(_ response: TrainsAPIResponse) async { trains = response }
     func saveServiceStatus(_ response: ServiceStatusAPIResponse) async { service = response }
     func saveRailways(_ response: RailwaysAPIResponse) async { railways = response }
+    func saveCommunityReports(
+        _ response: CommunityReportsAPIResponse
+    ) async {
+        community = response
+    }
 }
 
 enum TestError: LocalizedError {

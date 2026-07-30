@@ -14,11 +14,15 @@ final class AdManager: ObservableObject {
 
     init(configuration: AppConfiguration) {
         self.configuration = configuration
-        bannerUnitID = configuration.adMobBannerUnitID
+        bannerUnitID = ProcessInfo.processInfo.arguments.contains(
+            "-DisableAdsForUITesting"
+        ) ? nil : configuration.adMobBannerUnitID
     }
 
     func prepare() async {
-        guard configuration.isAdvertisingConfigured, !hasPrepared else {
+        guard bannerUnitID != nil,
+              configuration.isAdvertisingConfigured,
+              !hasPrepared else {
             return
         }
         hasPrepared = true

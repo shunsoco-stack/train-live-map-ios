@@ -1,31 +1,75 @@
 # Train Live Map for iOS
 
-関東を走るJR列車の位置推定と運行状況を地図で確認する、SwiftUI製のネイティブiOSアプリです。
+関東を走るJR東日本の列車位置推定と運行状況を地図で確認する、SwiftUI製ネイティブアプリです。
 
-- iOS 17以降
+画面上の正式表記は次のとおりです。
+
+```text
+Train Live Map
+JR東日本・関東版（非公式）
+```
+
+- ホーム画面表示名: `Train Live Map`
+- Bundle ID: `com.shunsoco.trainlivemap`
+- 対応OS: iOS 17以降
+- 問い合わせ: `train-live-map-support@gmail.com`
+- App Store掲載名候補: `Train Live Map - JR東日本 関東版`
+
+JR東日本の公式アプリではありません。WebViewは使用しておらず、既存Web版
+[`shunsoco-stack/train-live-map`](https://github.com/shunsoco-stack/train-live-map)
+を仕様参照元として独立実装しています。Web版リポジトリへiOSコードは追加しません。
+
+## 実装済み機能
+
+- MapLibre Native上へAPI取得路線だけを路線色・外枠付きで描画
+- 線路方向に沿い、上下逆を補正した路線名ラベル
+- 路線検索、表示／非表示、全表示／全非表示、選択数表示
+- 表示路線とお気に入りを別々に永続化し、「お気に入りのみ」で絞り込み
+- APIカテゴリごとに利用可能な先頭1路線だけを初回表示
+- 走行中、停車中、遅延、運転見合わせの列車フィルター
+- 状態別の電車の顔、上下方向文字、遅延吹き出し、見合わせバッジ
+- 列車詳細Bottom SheetとVoiceOver向け読み上げ
+- `routeSegment`／路線ポリライン上へクランプした滑らかな位置補間
+- 表示路線だけを対象にした公式運行情報
+- 直近30分の「みんなの運行情報」と匿名投稿
+- ユーザー操作後だけ要求する通知許可、APNs端末登録クライアント
+- 最終成功レスポンスの端末キャッシュと、失敗時の古いデータ表示／再試行
+- バックグラウンド時のポーリング・アニメーション停止、復帰時の即時更新
+- M PLUS Rounded 1c、ライト／ダーク、Dynamic Type、Reduce Motion、
+  Reduce Transparency、iPhone／iPad対応
+- UMP同意取得後にだけ初期化するAdMobアダプティブバナー
+
+地図の列車位置はGPS現在地ではありません。ODPTの駅間情報などから求める場合が
+あるため、アプリには常に「ODPTライブ（位置は駅間推定）」と表示します。
+
+## 技術構成
+
 - Swift / SwiftUI
-- MVVM
-- async/await + URLSession
-- MapLibre Native for iOS
+- MVVM + Repository
+- async/await + URLSession + Codable
+- MapLibre Native for iOS 6.28.0
+- Google Mobile Ads SDK 13.7.0
+- Google User Messaging Platform 3.1.0
 - Swift Package Manager
-- Google Mobile Ads SDK + User Messaging Platform
+- UserDefaults + Application Support JSONキャッシュ
+- XCTest / XCUITest
+- XcodeGen
 
-WebViewは使用していません。既存Web版は仕様の参照元であり、このリポジトリは独立したiOS実装です。
+依存方向は次のとおりです。
 
-## 主な機能
+```text
+View
+  ↓
+ViewModel
+  ↓
+TrainRepository
+  ↓
+TrainAPIService
+  ↓
+WebバックエンドAPI
+```
 
-- APIから取得したJR路線と列車の地図表示
-- 路線検索、表示・非表示、お気に入り、お気に入りのみ表示
-- 走行中・停車中・遅延・運転見合わせフィルター
-- 運行情報、データ取得元、最終更新、次回更新までの表示
-- 列車詳細シート
-- 路線色、上り・下りの矢印と文字、状態別の顔、遅延・見合わせバッジ
-- 線路上へクランプした滑らかな位置補間
-- 最終成功データの端末キャッシュと通信失敗時の再試行
-- ライト／ダークモード、VoiceOver、Dynamic Type、iPadレイアウト
-- UMP同意フロー後に初期化するアダプティブAdMobバナー
-
-列車の表示位置はGPS現在地ではありません。APIの駅間情報などから求めた「位置推定」です。
+UIから通信、キャッシュ、集計ロジックを分離しています。
 
 ## セットアップ
 
@@ -33,7 +77,7 @@ WebViewは使用していません。既存Web版は仕様の参照元であり�
 
 - Xcode 16以降
 - XcodeGen
-- iOS 17以降のSimulator、またはiPhone/iPad
+- iOS 17以降のSimulator、またはiPhone／iPad
 
 ```sh
 brew install xcodegen
@@ -41,125 +85,244 @@ xcodegen generate
 open TrainLiveMap.xcodeproj
 ```
 
-Xcodeで`TrainLiveMap`スキームを選び、Simulatorで実行してください。Swift Package Managerが次の依存関係を解決します。
+Xcodeで`TrainLiveMap`スキームを選んで実行してください。`project.yml`がプロジェクト
+設定の正本です。ターゲットやSwift Packageを変更した場合は、生成後の
+`TrainLiveMap.xcodeproj`もコミットします。
 
-- MapLibre 6.28.0
-- Google Mobile Ads SDK 13.7.0
-- Google User Messaging Platform 3.1.0
+## 環境設定
 
-アプリのBundle IDは`com.shunsoco.trainlivemap`、表示名は`Train Live Map`です。
+既定値は`Config/Base.xcconfig`、Debug／Release差分は各xcconfigにあります。
 
-## API
+| 設定 | 既定値／挙動 |
+| --- | --- |
+| `API_BASE_URL` | `https://train-live-map.vercel.app` |
+| `APNS_REGISTRATION_URL` | 未設定 |
+| `ADMOB_APP_ID` | DebugはGoogle公式テストID、Releaseは未設定 |
+| `ADMOB_BANNER_UNIT_ID` | DebugはGoogle公式テストID、Releaseは未設定 |
+| `MARKETING_VERSION` | `1.1.0` |
 
-既定のBase URLは`Config/Base.xcconfig`で設定しています。
-
-```text
-https://train-live-map.vercel.app
-```
-
-利用するエンドポイント:
-
-- `GET /api/trains`
-- `GET /api/service-status`
-- `GET /api/railways`
-
-Base URLは`API_BASE_URL`を変更することで差し替えられます。xcconfig内のURLは`//`がコメントとして扱われないよう、`https:/$()/...`形式で記述しています。
-
-アプリからODPTへ直接アクセスしません。`ODPT_ACCESS_TOKEN`をアプリ、Info.plist、Git履歴へ保存しないでください。トークン管理、モック、フォールバックはVercel側APIの責務です。
-
-`/api/trains`では列車配列に加え、`generatedAt`、`dataUpdatedAt`、`isMock`、`source`、`fallback`、`notice`をデコードします。`/api/railways`の`lines`を地図描画に、`options`の`available`と`coverage`を路線選択に使用します。利用可否をアプリ内の固定値では判定しません。
-
-## 更新、キャッシュ、位置補間
-
-- 列車位置: 7秒
-- 運行情報: 30秒
-- 路線情報: 起動時
-- バックグラウンド: ポーリングと描画補間を停止
-- 復帰時: 即時更新
-
-成功レスポンスはApplication Support配下へJSONで保存します。取得失敗時は最後の成功データを残し、「古いデータ」、最終更新時刻、エラー、再試行を表示します。
-
-位置補間は`routeSegment.coordinates`を優先し、なければ路線ポリラインへ投影します。`fromFraction`から`toFraction`への順序を進行方向として扱い、現在の描画位置から区間内を滑らかに移動します。補間は次回更新より前に停止し、データ取得が止まった後に予測移動を続けません。
-
-## AdMobとUMP
-
-[Google Mobile Ads SDKの公式iOS手順](https://developers.google.com/admob/ios/quick-start)に沿ってSPMで導入しています。
-
-Debug構成はGoogle公式テストIDだけを使用します。
-
-- App ID: `ca-app-pub-3940256099942544~1458002511`
-- Adaptive Banner: `ca-app-pub-3940256099942544/2435281174`
-
-Release構成ではIDが空のため、広告SDKを初期化せず、広告領域も表示しません。本番IDを設定する場合:
+Release用の外部IDはGit管理外のファイルから注入します。
 
 ```sh
 cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
 ```
 
-`Config/Secrets.xcconfig`へ次を設定します。
+`Config/Secrets.xcconfig`は`.gitignore`対象です。API URLをxcconfigへ記述する場合、
+`//`がコメント扱いされないよう`https:/$()/example.com`形式を使います。
 
-```text
-ADMOB_APP_ID = ca-app-pub-...
-ADMOB_BANNER_UNIT_ID = ca-app-pub-...
+## バックエンドAPI
+
+アプリが直接利用するのは、Web版バックエンドの次のAPIだけです。
+
+| Method | Path | 用途 | 更新 |
+| --- | --- | --- | --- |
+| GET | `/api/trains` | 列車スナップショット | 7秒 |
+| GET | `/api/service-status` | 公式運行情報 | 30秒 |
+| GET | `/api/railways` | 路線形状と選択肢 | 起動時 |
+| GET | `/api/community-reports` | 利用者投稿の30分集計 | 20秒／シート表示時 |
+| POST | `/api/community-reports` | 匿名Reporter IDによる投稿 | ユーザー操作時 |
+
+`/api/trains`では`trains`に加えて`generatedAt`、`dataUpdatedAt`、`isMock`、
+`source`、`fallback`、`notice`をデコードします。列車モデルは`routeSegment`、
+`fromStation`、`toStation`、`railDirection`の有無にも対応します。
+
+`/api/railways`の`lines`を地図描画に使用し、`options.available`と`coverage`を
+選択可否、`coverageNote`を提供範囲の注意書きに使用します。路線一覧や利用可否を
+iOS側の固定値だけでは決めません。
+
+iOSアプリからODPTへ直接アクセスしません。`ODPT_ACCESS_TOKEN`をソース、
+Info.plist、xcconfig、ログ、Git履歴へ保存しないでください。トークン管理と
+ODPT失敗時のフォールバックはVercel側の責務です。
+
+## 実データ・推定・モックの区別
+
+`dataAccuracy`とレスポンスメタデータを次のように表示します。
+
+- `actual`: 実データ
+- `estimated`: 推定データ（駅間推定）
+- `mock`: モックデータ
+- `isMock == true`または`source == mock`: 「モックデータ使用中」
+- `fallback == true`: フォールバック理由と`notice`
+
+ODPTのJR東日本列車位置は公共交通オープンデータチャレンジ2026限定データです。
+`odpt:Train`には緯度経度がなく、`fromStation`／`toStation`から線路上の位置を
+推定する場合があります。実測GPS位置と誤認させる「現在地」という表現は使いません。
+
+## 対象路線
+
+対象は`/api/railways.options`で`available == true`かつ
+`coverage != unavailable`の路線です。2026-07-30の本番API確認時点では、
+41選択肢中40路線が選択可能で、次の7カテゴリでした。
+
+- 山手線: 山手線
+- 直通系統: 湘南新宿ライン、相鉄線直通列車
+- 東海道方面: 東海道線、京浜東北線、横須賀線、南武線、横浜線、伊東線
+- 東北・高崎方面: 宇都宮線、高崎線、埼京線、川越線、武蔵野線、上越線、
+  信越本線、吾妻線、烏山線、日光線、両毛線
+- 中央方面: 中央線快速電車、中央・総武線各駅停車、中央本線、五日市線、
+  青梅線、小海線
+- 常磐方面: 常磐線、常磐線快速電車、常磐線各駅停車、水郡線、水戸線
+- 総武方面: 総武快速線、総武本線、京葉線、内房線、鹿島線、久留里線、
+  外房線、東金線、成田線
+
+同時点で上野東京ラインは`available == false`のため選択画面から除外されます。
+既知の対象外である相模線、鶴見線、南武支線、八高線もAPIの利用可能選択肢へ
+含まれないため表示しません。APIが変更された場合は最新結果を優先します。
+
+高崎線、中央本線、青梅線、常磐線系統など、`coverage == limited`の路線には
+APIの`coverageNote`を表示します。
+
+## 更新、キャッシュ、列車アニメーション
+
+- 列車: 7秒
+- 公式運行情報: 30秒
+- みんなの運行情報: 20秒
+- 路線: 起動時
+- バックグラウンド: 全ポーリングと補間を停止
+- フォアグラウンド復帰: 即時更新
+
+成功レスポンス4種はApplication Support配下へ原子的に保存します。通信失敗時は
+画面を空にせず、最後の成功データ、古いデータであること、最終更新時刻、再試行を
+表示します。
+
+列車位置は`routeSegment.coordinates`を優先し、なければ緯度経度を選択路線の
+ポリラインへ投影します。進行方向と区間の`fromFraction`／`toFraction`を使い、
+現在の描画位置から次スナップショットへ補間します。停止中・見合わせ中・
+バックグラウンド・Reduce Motion有効時は動かしません。次駅や駅間終端を越えて
+外挿せず、API更新が止まった後に予測移動を続けません。
+
+## みんなの運行情報
+
+- 投稿種別: 平常、遅延、運転見合わせ
+- 遅延分数: 1〜120分、集計値は中央値
+- 集計窓: 直近30分
+- 同数: 重大度の高い状態を優先
+- Reporter ID: 端末内でランダム生成し、個人情報は収集しない
+- 連続投稿: API返却の`cooldownSeconds`を端末でも適用
+- 表示: 「みんなの情報（非公式）」と明記し、公式運行情報と分離
+
+POST本文は`lineId`、`status`、必要時の`delayMinutes`です。匿名IDは
+`x-community-reporter`ヘッダーへ設定します。バックエンド側でも入力検証、
+永続化、レート制限を行う前提です。
+
+## APNs通知
+
+通知許可は通知設定シートで機能説明を読んだ後、ユーザー操作でだけ要求します。
+お気に入りと通知対象は別々に保存し、通知タップ時は`userInfo.lineId`の路線だけを
+表示します。
+
+iOS側には次の端末登録リクエストを実装済みです。
+
+```json
+{
+  "deviceToken": "<APNs token>",
+  "lineIds": ["tokaido"],
+  "platform": "ios",
+  "bundleId": "com.shunsoco.trainlivemap"
+}
 ```
 
-`Config/Secrets.xcconfig`は`.gitignore`対象です。本物の広告IDやその他の秘密情報をコミットしないでください。対象地域ではUMPの同意情報を更新し、必要なフォームを提示し、広告リクエストが許可された後だけGoogle Mobile Ads SDKを初期化します。
+送信先は`APNS_REGISTRATION_URL`です。現行WebバックエンドにはAPNs端末登録／
+配信エンドポイントがないため、未設定時は通知許可と購読路線だけを端末へ保存します。
+サーバー側では、直近5分の異なるReporterによる見合わせ票3件以上、割合60%以上、
+前5分にも票が多い場合は2倍以上、路線別クールダウン、重複防止を実装してから
+本番URLを設定してください。通知文は必ず「可能性」「利用者からの報告」と明記します。
+
+## AdMobとUMP
+
+[Google Mobile Ads SDK公式手順](https://developers.google.com/admob/ios/quick-start)
+に沿ってSPM導入しています。
+
+DebugはGoogle公式テストIDだけを使用します。
+
+- App ID: `ca-app-pub-3940256099942544~1458002511`
+- Adaptive Banner: `ca-app-pub-3940256099942544/2435281174`
+
+Release用IDが未設定なら広告SDKを初期化せず、バナー領域も表示しません。設定済みでも
+UMPの同意情報を更新し、必要なフォームを提示し、広告リクエスト可能になってから
+Google Mobile Ads SDKを初期化します。本物の広告IDをGitへコミットしないでください。
+
+## デザインとアクセシビリティ
+
+- M PLUS Rounded 1c Regular 400／Bold 700／ExtraBold 800
+- Web版と統一した緑色の電車App Icon（全iPhone／iPadサイズ、アルファなし）
+- ダークブラウンのヘッダー／パネル、東海道線アクセント`#f68b1e`
+- 44pt以上のタップ領域、Dynamic Type、十分なコントラスト
+- 状態を色だけでなく、顔・文字・記号・VoiceOverで表現
+- Reduce Motion時は列車補間を無効化
+- Reduce Transparency時はパネルの不透明度を上げる
+- 位置情報権限や不要な権限は要求しない
 
 ## ビルドとテスト
 
 ```sh
+xcodegen generate
+
 xcodebuild \
   -project TrainLiveMap.xcodeproj \
   -scheme TrainLiveMap \
   -configuration Debug \
   -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+
+xcodebuild \
+  -project TrainLiveMap.xcodeproj \
+  -scheme TrainLiveMap \
+  -configuration Release \
+  -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO \
   build
 ```
 
-テスト先はインストール済みSimulatorへ変更してください。
+署名付きSimulatorテストは、インストール済み端末名へ変更して実行します。
 
 ```sh
 xcodebuild \
   -project TrainLiveMap.xcodeproj \
   -scheme TrainLiveMap \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   test
 ```
 
-macOSのFile Provider配下で署名用メタデータが生成物へ付く環境では、`-derivedDataPath /tmp/train-live-map-ios-derived-data`を追加してください。
+テスト対象にはAPIデコード、実／推定／モック、路線カラー、選択・検索・お気に入り、
+状態フィルター、補間・クランプ、顔・吹き出し・方向、キャッシュ、投稿集計、
+通知判定、Reduce Motion、VoiceOver文言、最大Dynamic Type、ダークモード、
+iPhone SE相当／標準／Pro Max／iPadのUIが含まれます。
 
-テスト対象:
+## データと地図のクレジット
 
-- API JSONデコード
-- 通常・遅延・見合わせの顔
-- 上り・下り表示
-- 路線検索、表示切替、お気に入り、絞り込み、永続化
-- 列車状態フィルター
-- ポリライン補間、進行方向、0〜1クランプ、線路上への投影
-- データ停止後の補間停止
-- API失敗時のキャッシュ
-- mock／fallback表示
+- 公共交通オープンデータセンター（ODPT）:
+  [開発者サイト](https://developer.odpt.org/)、
+  [データカタログ](https://ckan.odpt.org/)
+- OpenStreetMap:
+  [Copyright and License](https://www.openstreetmap.org/copyright)
+- CARTO:
+  [Attributions](https://carto.com/attributions)
 
-## 地図の帰属
+ODPTチャレンジ2026およびデータ提供者ごとの利用条件に従ってください。MapLibreの
+ロゴと帰属ボタンは非表示にしておらず、スタイルにも
+`© OpenStreetMap contributors, © CARTO`を設定しています。
 
-ベースマップはCARTO VoyagerのOpenStreetMapデータを利用します。MapLibreのロゴと帰属ボタンは非表示にしていません。スタイル内にも`© OpenStreetMap contributors, © CARTO`を設定しています。
-
-## 構成
+## ディレクトリ構成
 
 ```text
 TrainLiveMap/
-├── App/                 アプリ起動と設定
-├── Data/                API、キャッシュ、端末設定
-├── Domain/              APIモデル、表示ロジック、位置補間
-├── Design/              色と共通スタイル
+├── App/                 起動と環境設定
+├── Data/                API Client、Repository、キャッシュ、端末設定
+├── Domain/              Codableモデル、集計、補間、表示ロジック
+├── Design/              色、M PLUS Rounded、共通スタイル
 ├── Features/
-│   ├── Ads/             AdMob、UMP、バナー
-│   ├── Filters/         路線検索と設定
-│   ├── Main/            メイン画面とViewModel
-│   ├── Map/             MapLibre、路線、列車アイコン
-│   └── Train/           列車詳細
-└── Resources/           App Icon、地図スタイル
+│   ├── About/
+│   ├── Ads/
+│   ├── Community/
+│   ├── Filters/
+│   ├── Main/
+│   ├── Map/
+│   ├── Notifications/
+│   └── Train/
+└── Resources/           App Icon、フォント、MapLibreスタイル
 ```
 
-運用・リリース時の引き継ぎ事項は[HANDOFF.md](HANDOFF.md)を参照してください。
+リリース時の外部設定と既知の制約は[HANDOFF.md](HANDOFF.md)を参照してください。

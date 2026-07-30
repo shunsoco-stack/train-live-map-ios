@@ -4,9 +4,11 @@ protocol ResponseCaching: Sendable {
     func loadTrains() async -> TrainsAPIResponse?
     func loadServiceStatus() async -> ServiceStatusAPIResponse?
     func loadRailways() async -> RailwaysAPIResponse?
+    func loadCommunityReports() async -> CommunityReportsAPIResponse?
     func saveTrains(_ response: TrainsAPIResponse) async
     func saveServiceStatus(_ response: ServiceStatusAPIResponse) async
     func saveRailways(_ response: RailwaysAPIResponse) async
+    func saveCommunityReports(_ response: CommunityReportsAPIResponse) async
 }
 
 actor FileResponseCache: ResponseCaching {
@@ -14,6 +16,7 @@ actor FileResponseCache: ResponseCaching {
         static let trains = "trains.json"
         static let serviceStatus = "service-status.json"
         static let railways = "railways.json"
+        static let communityReports = "community-reports.json"
     }
 
     private let directoryURL: URL
@@ -51,6 +54,13 @@ actor FileResponseCache: ResponseCaching {
         load(RailwaysAPIResponse.self, filename: Filename.railways)
     }
 
+    func loadCommunityReports() async -> CommunityReportsAPIResponse? {
+        load(
+            CommunityReportsAPIResponse.self,
+            filename: Filename.communityReports
+        )
+    }
+
     func saveTrains(_ response: TrainsAPIResponse) async {
         save(response, filename: Filename.trains)
     }
@@ -61,6 +71,10 @@ actor FileResponseCache: ResponseCaching {
 
     func saveRailways(_ response: RailwaysAPIResponse) async {
         save(response, filename: Filename.railways)
+    }
+
+    func saveCommunityReports(_ response: CommunityReportsAPIResponse) async {
+        save(response, filename: Filename.communityReports)
     }
 
     private func load<Value: Decodable>(
