@@ -53,6 +53,7 @@ git add project.yml TrainLiveMap.xcodeproj
 - `FileResponseCache`: 4レスポンスのApplication Support保存
 - `UserPreferences`: 表示、お気に入り、通知対象、Reporter ID、投稿時刻
 - `RailwaySelectionLogic`: APIカテゴリごとの初期1路線、選択中だけの運行情報
+- `ServiceStatusLogic`: ODPT文面優先、2分鮮度、列車遅延による補完と重大判定
 - `CommunityReportLogic`: 30分集計、中央値、重大度tie-break、通知閾値判定
 - `TrainMotionEngine`: routeSegment、線路投影、区間内補間、Reduce Motion
 - `MapLibreTrainMap`: 路線casing、ラベル、古いlayer削除、自動viewport
@@ -235,7 +236,7 @@ SDKもバナー領域も無効です。
 - Debug Simulator署名付きbuild-for-testing: 成功
 - Release Simulator build: 成功
 - Release実機向け署名なしコンパイル: 成功
-- Unit Test: 31件成功、失敗0
+- Unit Test: 42件成功、失敗0（運行情報補完11件を含む）
 - 標準iPhone UI Test: 3件成功、失敗0
 - iPhone SE相当: 主要UI／VoiceOverスモーク成功、目視確認済み
 - iPhone Pro Max相当: 最大Dynamic Type／ダーク／通知UI成功
@@ -250,6 +251,7 @@ Unit Testの範囲:
 - actual／estimated／mock、fallback
 - 路線色、初期選択、検索、表示、お気に入り、通知対象、永続化
 - 表示路線だけの公式運行情報
+- 運転再開／現在見合わせの文脈分類、古い列車を除外した遅延補完
 - 全状態フィルター
 - 上下方向、顔、涙、遅延吹き出し、VoiceOver文言
 - 補間、0〜1クランプ、線路投影、停止、Reduce Motion

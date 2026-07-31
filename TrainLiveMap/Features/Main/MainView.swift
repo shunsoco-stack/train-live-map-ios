@@ -400,9 +400,17 @@ private struct ServiceStatusPanel: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(status.lineName)
                                 .font(RailFont.extraBold(.caption))
+                            if status.dataAccuracy == .estimated {
+                                Label(
+                                    "列車位置から補完",
+                                    systemImage: "location.magnifyingglass"
+                                )
+                                .font(RailFont.bold(.caption2))
+                                .foregroundStyle(.orange)
+                            }
                             Text(status.message)
                                 .font(RailFont.bold(.caption))
-                                .lineLimit(2)
+                                .lineLimit(3)
                         }
                         Spacer(minLength: 2)
                     }

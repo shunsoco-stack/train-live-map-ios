@@ -90,8 +90,19 @@ final class MainViewModel: ObservableObject {
     }
 
     var visibleServiceStatuses: [ServiceStatus] {
-        RailwaySelectionLogic.filteredServiceStatuses(
-            serviceStatusResponse?.allStatuses ?? [],
+        let statuses = serviceStatusResponse?.allStatuses ?? []
+        let canUseODPTTrainFallback = serviceStatusResponse?.source == .odpt
+            && serviceStatusResponse?.isMock == false
+            && serviceStatusResponse?.fallback == false
+            && trainsResponse?.source == .odpt
+            && trainsResponse?.isMock == false
+            && trainsResponse?.fallback == false
+        let resolvedStatuses = ServiceStatusLogic.resolvedStatuses(
+            statuses,
+            trains: canUseODPTTrainFallback ? trainsResponse?.trains ?? [] : []
+        )
+        return RailwaySelectionLogic.filteredServiceStatuses(
+            resolvedStatuses,
             visibleLineIDs: preferences.effectiveVisibleLineIDs
         )
     }
