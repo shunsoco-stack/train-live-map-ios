@@ -51,6 +51,20 @@ struct AboutSheet: View {
                     .font(RailFont.regular(.footnote))
                 }
 
+                Section("プライバシーと通知") {
+                    Label(
+                        "通知配信に使用するAPNs端末トークンと購読路線は、配信サーバーで最終更新から最大180日間保持されます。",
+                        systemImage: "hand.raised.fill"
+                    )
+                    .font(RailFont.regular(.footnote))
+                    Text(
+                        "通知登録の解除時にはサーバーへ購読情報の削除を要求します。"
+                            + "APNs端末トークンはブラウザ用Web Push購読APIへ送信しません。"
+                    )
+                    .font(RailFont.regular(.caption))
+                    .foregroundStyle(.secondary)
+                }
+
                 Section("お問い合わせ") {
                     Button {
                         openURL(

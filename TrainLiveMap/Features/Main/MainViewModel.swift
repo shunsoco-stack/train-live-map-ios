@@ -283,6 +283,19 @@ final class MainViewModel: ObservableObject {
             return false
         }
 
+        guard preferences.reporterIDIsSecurelyStored else {
+            communityErrorMessage =
+                "匿名端末IDをKeychainへ安全に保存できないため、投稿を送信しません。"
+            return false
+        }
+
+        let serverRetryRemaining = preferences.remainingCommunityRetry()
+        guard serverRetryRemaining == 0 else {
+            communityErrorMessage =
+                "投稿が制限されています。あと\(serverRetryRemaining)秒は再送できません。"
+            return false
+        }
+
         let cooldown = communityReportsResponse?.cooldownSeconds ?? 60
         let remaining = preferences.remainingCommunityCooldown(
             lineID: lineID,
@@ -306,6 +319,13 @@ final class MainViewModel: ObservableObject {
             communitySuccessMessage = "投稿しました。みんなの情報として共有されます。"
             preferences.recordCommunitySubmission(lineID: lineID)
             return true
+        } catch let APIClientError.rateLimited(retryAfter, message) {
+            preferences.recordCommunityRetry(until: retryAfter)
+            let remaining = preferences.remainingCommunityRetry()
+            communityErrorMessage = remaining > 0
+                ? "\(message) あと\(remaining)秒は再送しません。"
+                : message
+            return false
         } catch {
             communityErrorMessage = Self.message(
                 for: error,

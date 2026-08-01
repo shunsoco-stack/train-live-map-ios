@@ -32,7 +32,7 @@ JR東日本の公式アプリではありません。WebViewは使用してお�
 - `routeSegment`／路線ポリライン上へクランプした滑らかな位置補間
 - 表示路線だけを対象にした公式運行情報と、最新列車遅延による安全な補完
 - 直近30分の「みんなの運行情報」と匿名投稿
-- ユーザー操作後だけ要求する通知許可、APNs端末登録クライアント
+- ユーザー操作後だけ要求する通知許可、HTTPS専用のAPNs端末登録／解除クライアント
 - 最終成功レスポンスの端末キャッシュと、失敗時の古いデータ表示／再試行
 - バックグラウンド時のポーリング・アニメーション停止、復帰時の即時更新
 - M PLUS Rounded 1c、ライト／ダーク、Dynamic Type、Reduce Motion、
@@ -109,6 +109,8 @@ cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
 
 `Config/Secrets.xcconfig`は`.gitignore`対象です。API URLをxcconfigへ記述する場合、
 `//`がコメント扱いされないよう`https:/$()/example.com`形式を使います。
+`API_BASE_URL`と`APNS_REGISTRATION_URL`は`https` URLだけを許可します。`http`や
+不正なURLは通信へ使用しません。
 
 ## バックエンドAPI
 
@@ -139,6 +141,18 @@ iOS側の固定値だけでは決めません。
 iOSアプリからODPTへ直接アクセスしません。`ODPT_ACCESS_TOKEN`をソース、
 Info.plist、xcconfig、ログ、Git履歴へ保存しないでください。トークン管理と
 ODPT失敗時のフォールバックはVercel側の責務です。
+
+利用者投稿は`Content-Type: application/json`で送信し、Keychainへ保存した
+ランダムなReporter IDを`X-Community-Reporter`ヘッダーへ設定します。サーバーの
+`403`（拒否）、`413`（本文過大）、`415`（JSON以外）、`429`（回数制限）は個別に
+案内します。`429`では`Retry-After`の秒数または日時までクライアント側でも再送を
+禁止し、自動リトライしません。Reporter IDをKeychainへ保存できない場合は投稿を
+fail-closedで中止します。
+
+`ODPT_ACCESS_TOKEN`、Redis認証情報、`VAPID_PRIVATE_KEY`、
+`REPORTER_HASH_SALT`、移行用の`COMMUNITY_REPORT_HMAC_SECRET`はすべて
+Webバックエンドだけで管理する秘密情報です。iOSアプリ、Info.plist、xcconfig、
+ログ、Git履歴へ組み込みません。
 
 ## 実データ・推定・モックの区別
 
@@ -203,13 +217,13 @@ APIの`coverageNote`を表示します。
 - 遅延分数: 1〜120分、集計値は中央値
 - 集計窓: 直近30分
 - 同数: 重大度の高い状態を優先
-- Reporter ID: 端末内でランダム生成し、個人情報は収集しない
+- Reporter ID: ランダムUUID由来の値をKeychainへ保存し、個人情報は収集しない
 - 連続投稿: API返却の`cooldownSeconds`を端末でも適用
 - 表示: 「みんなの情報（非公式）」と明記し、公式運行情報と分離
 
-POST本文は`lineId`、`status`、必要時の`delayMinutes`です。匿名IDは
-`x-community-reporter`ヘッダーへ設定します。バックエンド側でも入力検証、
-永続化、レート制限を行う前提です。
+POST本文は`lineId`、`status`、必要時の`delayMinutes`です。JSON本文とともに匿名IDを
+`X-Community-Reporter`ヘッダーへ設定します。バックエンド側でも入力検証、
+匿名化、永続化、レート制限を行う前提です。Reporter IDをログへ出力しません。
 
 ## APNs通知
 
@@ -217,7 +231,7 @@ POST本文は`lineId`、`status`、必要時の`delayMinutes`です。匿名ID�
 お気に入りと通知対象は別々に保存し、通知タップ時は`userInfo.lineId`の路線だけを
 表示します。
 
-iOS側には次の端末登録リクエストを実装済みです。
+iOS側は`APNS_REGISTRATION_URL`へ次のJSONを`POST`して端末登録／購読更新します。
 
 ```json
 {
@@ -228,11 +242,20 @@ iOS側には次の端末登録リクエストを実装済みです。
 }
 ```
 
-送信先は`APNS_REGISTRATION_URL`です。現行WebバックエンドにはAPNs端末登録／
-配信エンドポイントがないため、未設定時は通知許可と購読路線だけを端末へ保存します。
+全路線の通知を解除した場合または通知許可が無効になった場合は、同じURLへ
+`deviceToken`、`platform`、`bundleId`をJSONで`DELETE`し、サーバー側購読情報も
+削除します。
+
+Web版の`/api/push/config`と`/api/push/subscriptions`はブラウザのWeb Push専用です。
+iOSアプリはこれらを呼ばず、APNsデバイストークンを絶対に送信しません。現行Web
+バックエンドにはネイティブAPNs用のPOST／DELETE／配信エンドポイントがないため、
+`APNS_REGISTRATION_URL`未設定時は通知許可と購読路線だけを端末へ保存します。
 サーバー側では、直近5分の異なるReporterによる見合わせ票3件以上、割合60%以上、
 前5分にも票が多い場合は2倍以上、路線別クールダウン、重複防止を実装してから
-本番URLを設定してください。通知文は必ず「可能性」「利用者からの報告」と明記します。
+本番URLを設定してください。Push購読情報は最終更新から最大180日で失効させ、
+通知解除の`DELETE`およびAPNsの失効応答で直ちに削除します。アプリ内プライバシー表示
+にもこの保持期間と削除方法を明記します。通知文は必ず「可能性」「利用者からの報告」
+と明記します。
 
 ## AdMobとUMP
 
@@ -294,6 +317,7 @@ xcodebuild \
 
 テスト対象にはAPIデコード、実／推定／モック、路線カラー、選択・検索・お気に入り、
 状態フィルター、補間・クランプ、顔・吹き出し・方向、キャッシュ、投稿集計、
+Community APIのJSON／Keychain／HTTPエラー／再送制限、APNs登録・解除契約、
 通知判定、Reduce Motion、VoiceOver文言、最大Dynamic Type、ダークモード、
 iPhone SE相当／標準／Pro Max／iPadのUIが含まれます。
 

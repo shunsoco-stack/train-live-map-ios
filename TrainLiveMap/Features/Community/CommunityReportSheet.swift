@@ -190,7 +190,7 @@ struct CommunityReportSheet: View {
     private var privacySection: some View {
         Section("プライバシー") {
             Label(
-                "個人情報は収集しません。端末内で生成した匿名Reporter IDを、連続投稿の制限に使用します。",
+                "個人情報は収集しません。端末内で生成した匿名Reporter IDをKeychainで保持し、連続投稿の制限に使用します。",
                 systemImage: "hand.raised.fill"
             )
             .font(RailFont.regular(.footnote))
@@ -198,6 +198,11 @@ struct CommunityReportSheet: View {
                 response?.persistent == true
                     ? "投稿はバックエンドで保存・検証されます。"
                     : "この環境では投稿が永続保存されない場合があります。"
+            )
+            .font(RailFont.regular(.caption))
+            .foregroundStyle(.secondary)
+            Text(
+                "通知機能を利用する場合、APNsトークン・選択路線・最終更新時刻などのPush情報は、配信側で最終更新から最大180日保持され、通知解除時に削除されます。"
             )
             .font(RailFont.regular(.caption))
             .foregroundStyle(.secondary)

@@ -53,6 +53,13 @@ struct TrainLiveMapApp: App {
                             switch newPhase {
                             case .active:
                                 viewModel.activate()
+                                Task {
+                                    await notificationManager
+                                        .refreshAfterBecomingActive(
+                                            lineIDs: viewModel.preferences
+                                                .notificationLineIDs
+                                        )
+                                }
                             case .inactive, .background:
                                 viewModel.deactivate()
                             @unknown default:

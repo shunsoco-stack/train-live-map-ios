@@ -51,7 +51,8 @@ git add project.yml TrainLiveMap.xcodeproj
 - `TrainRepository`: UIとAPI／キャッシュを分離
 - `URLSessionTrainAPIService`: Vercel APIのGET／POST、HTTP／JSON検証
 - `FileResponseCache`: 4レスポンスのApplication Support保存
-- `UserPreferences`: 表示、お気に入り、通知対象、Reporter ID、投稿時刻
+- `UserPreferences`: 表示、お気に入り、通知対象、投稿時刻
+- Reporter IDストア: ランダム端末IDのKeychain保存と旧UserDefaults値の安全な移行
 - `RailwaySelectionLogic`: APIカテゴリごとの初期1路線、選択中だけの運行情報
 - `ServiceStatusLogic`: ODPT文面優先、2分鮮度、列車遅延による補完と重大判定
 - `CommunityReportLogic`: 30分集計、中央値、重大度tie-break、通知閾値判定
@@ -76,6 +77,20 @@ git add project.yml TrainLiveMap.xcodeproj
 ODPTへ直接アクセスするコードを追加しないでください。`ODPT_ACCESS_TOKEN`を
 アプリ、Info.plist、xcconfig、ログ、Git履歴へ入れないでください。
 
+`API_BASE_URL`はhostを持つ`https` URLだけを許可します。`http`へフォールバック
+したり、ATS例外を追加したりしないでください。Community ReportのPOSTは
+`Content-Type: application/json`と`X-Community-Reporter`が必須です。Reporter IDは
+Keychainのランダム値を使用し、ヘッダーや本文をログへ出力しません。Keychain保存を
+確認できない場合は投稿をfail-closedで送信しません。
+
+Webバックエンドの`403`、`413`、`415`、`429`は個別の非再試行エラーとして扱います。
+`429`だけは`Retry-After`（delta-secondsまたはHTTP-date）を保存し、その期限までは
+UIとAPIクライアントの両方で再送を禁止します。期限前の自動再試行は禁止です。
+
+`ODPT_ACCESS_TOKEN`、Redis URL／token、`VAPID_PRIVATE_KEY`、
+`REPORTER_HASH_SALT`、legacy fallbackの`COMMUNITY_REPORT_HMAC_SECRET`は
+サーバー専用です。クライアント設定、バイナリ、ログ、Gitへ含めません。
+
 2026-07-30の本番API確認:
 
 - trains: 最終確認時251件、`source=odpt`、`isMock=false`、`fallback=false`
@@ -95,9 +110,10 @@ ODPTへ直接アクセスするコードを追加しないでください。`ODP
 4. `TrainLiveMapTests/Fixtures`
 5. `APIJSONDecodingTests`
 
-本番`/api/community-reports`は稼働していますが、確認時点のWeb参照リポジトリには
-同ルートのソースが含まれていませんでした。バックエンド変更時はVercelへ実際に
-デプロイされているソースとの一致を先に確認してください。
+2026-08-01時点のWeb版では、`/api/community-reports`にJSON限定、16KiB上限、
+Reporter／接続元単位の回数制限が実装されています。エラー本文は`{ "error": "..." }`、
+`429`の`Retry-After`は秒数です。バックエンド変更時はWeb版`origin/main`とVercelへ
+実際にデプロイされているソースの一致を先に確認してください。
 
 ## 対象路線と形状の注意
 
@@ -144,13 +160,15 @@ TrainLiveMap/Cache/
 - `train-live-map.notification-line-ids`
 - `train-live-map.favorites-only`
 - `train-live-map.visibility-initialized`
-- `train-live-map.community-reporter-id`
 - `train-live-map.community-submission-dates`
 
 初回だけAPIカテゴリごとの利用可能な先頭1路線を選び、以後は保存値を復元します。
 APIから消えたIDは`reconcile`で表示／お気に入り／通知対象から除外します。
 
-Reporter IDはランダムUUID由来で、氏名、メール、位置情報などの個人情報を保存しません。
+Reporter IDはランダムUUID由来で、Keychainへ保存します。旧版の
+`train-live-map.community-reporter-id`がUserDefaultsにあれば、形式を検証して
+Keychainへ一度だけ移行し、旧値を削除します。氏名、メール、位置情報などの個人情報は
+保存しません。
 
 ## 列車位置と表示
 
@@ -180,10 +198,15 @@ Reporter IDはランダムUUID由来で、氏名、メール、位置情報な�
 バックエンド側の入力検証、Reporter単位レート制限、永続化を必ず維持してください。
 公式情報と利用者投稿はUIでもモデルでも分離しています。
 
+POSTは常にJSONで、KeychainのReporter IDを`X-Community-Reporter`へ設定します。
+`403`はサーバー拒否、`413`は本文過大、`415`はJSON形式不一致として表示し、
+`429`では`Retry-After`まで同一路線を再送できない状態にします。
+
 ## APNsバックエンドの残作業
 
-iOSクライアント側は完成していますが、現行WebバックエンドにはAPNs端末登録／
-配信処理がありません。`APNS_REGISTRATION_URL`には次を受けるHTTPS POSTを用意します。
+iOSクライアント側はHTTPSの登録／解除に対応しますが、現行Webバックエンドには
+APNs端末登録／配信処理がありません。`APNS_REGISTRATION_URL`には次を受ける
+HTTPS `POST`を用意します。
 
 ```json
 {
@@ -194,9 +217,26 @@ iOSクライアント側は完成していますが、現行Webバックエン�
 }
 ```
 
+購読全解除または通知許可無効時のHTTPS `DELETE`は次を受け、該当tokenの購読情報を
+冪等に削除します。
+
+```json
+{
+  "deviceToken": "<hex APNs token>",
+  "platform": "ios",
+  "bundleId": "com.shunsoco.trainlivemap"
+}
+```
+
+`Content-Type`はどちらも`application/json`です。Web版の`/api/push/config`と
+`/api/push/subscriptions`はWeb Pushのendpoint／p256dh／auth鍵を受けるブラウザ専用
+APIなので、iOSから呼ばず、APNs tokenを送信しないでください。
+
 必要なサーバー責務:
 
 - tokenと購読路線のupsert／解除／失効token削除
+- `updatedAt`基準でPush情報を最大180日だけ保持し、期限切れを削除
+- 通知解除のDELETEでサーバー側購読情報を即時削除
 - APNs provider tokenまたは証明書の安全な保管
 - 直近5分、異なるReporterの最新票だけを1票として集計
 - 見合わせ3件以上かつ60%以上
@@ -207,6 +247,8 @@ iOSクライアント側は完成していますが、現行Webバックエン�
 - 「可能性」「利用者からの報告」「公式情報をご確認ください」の文言
 
 APNs key、Team ID、Key IDはGitへ保存せず、Vercel等のSecretへ設定します。
+アプリ内プライバシー表示には、Push情報が最終更新から最大180日保持され、通知解除時に
+サーバーから削除されることを明記します。
 
 ## AdMob／UMP
 
@@ -236,7 +278,7 @@ SDKもバナー領域も無効です。
 - Debug Simulator署名付きbuild-for-testing: 成功
 - Release Simulator build: 成功
 - Release実機向け署名なしコンパイル: 成功
-- Unit Test: 42件成功、失敗0（運行情報補完11件を含む）
+- Unit Test: 59件成功、失敗0（セキュリティ17件、運行情報補完11件を含む）
 - 標準iPhone UI Test: 3件成功、失敗0
 - iPhone SE相当: 主要UI／VoiceOverスモーク成功、目視確認済み
 - iPhone Pro Max相当: 最大Dynamic Type／ダーク／通知UI成功
@@ -281,7 +323,8 @@ Unit Testの範囲:
 
 ### バックエンド／外部ID
 
-- APNs端末登録URLと送信workerを実装
+- APNs端末登録URLのHTTPS POST／DELETEと送信workerを実装
+- Push情報の最大180日失効と通知解除時削除をバックエンドで検証
 - `APNS_REGISTRATION_URL`をReleaseへ注入
 - AdMob App ID／Adaptive Banner Unit IDをReleaseへ注入
 - UMPメッセージを必要地域向けに公開

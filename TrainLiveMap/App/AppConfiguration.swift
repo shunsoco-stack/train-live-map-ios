@@ -8,13 +8,27 @@ struct AppConfiguration: Equatable {
     let adMobAppID: String?
     let adMobBannerUnitID: String?
 
+    init(
+        apiBaseURL: URL,
+        apnsRegistrationURL: URL?,
+        adMobAppID: String?,
+        adMobBannerUnitID: String?
+    ) {
+        self.apiBaseURL = Self.validatedAPIBaseURL(apiBaseURL)
+        self.apnsRegistrationURL = Self.validatedNativeAPNSEndpoint(
+            apnsRegistrationURL
+        )
+        self.adMobAppID = adMobAppID
+        self.adMobBannerUnitID = adMobBannerUnitID
+    }
+
     static var current: AppConfiguration {
         let dictionary = Bundle.main.infoDictionary ?? [:]
-        let baseURL = normalizedString(dictionary["APIBaseURL"])
+        let configuredBaseURL = normalizedString(dictionary["APIBaseURL"])
             .flatMap(URL.init(string:))
             ?? productionBaseURL
         return AppConfiguration(
-            apiBaseURL: baseURL,
+            apiBaseURL: configuredBaseURL,
             apnsRegistrationURL: normalizedString(
                 dictionary["APNSRegistrationURL"]
             ).flatMap(URL.init(string:)),
@@ -38,6 +52,43 @@ struct AppConfiguration: Equatable {
 
     static var isUITesting: Bool {
         ProcessInfo.processInfo.arguments.contains("-UITesting")
+    }
+
+    static func validatedAPIBaseURL(_ url: URL?) -> URL {
+        guard isSecureHTTPSURL(url),
+              url?.query == nil,
+              url?.fragment == nil else {
+            return productionBaseURL
+        }
+        return url ?? productionBaseURL
+    }
+
+    static func validatedNativeAPNSEndpoint(_ url: URL?) -> URL? {
+        guard isSecureHTTPSURL(url), let url else {
+            return nil
+        }
+
+        let pathComponents = url.pathComponents
+            .filter { $0 != "/" }
+            .map { $0.lowercased() }
+        guard !pathComponents.starts(with: ["api", "push"]) else {
+            // /api/push/* is the browser Web Push contract. APNs tokens must
+            // only be sent to a separately implemented native endpoint.
+            return nil
+        }
+        return url
+    }
+
+    static func isSecureHTTPSURL(_ url: URL?) -> Bool {
+        guard let url,
+              url.scheme?.lowercased() == "https",
+              let host = url.host,
+              !host.isEmpty,
+              url.user == nil,
+              url.password == nil else {
+            return false
+        }
+        return true
     }
 
     private static func normalizedString(_ value: Any?) -> String? {

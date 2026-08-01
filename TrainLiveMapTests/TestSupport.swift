@@ -135,3 +135,30 @@ enum TestError: LocalizedError {
         "テスト用の通信失敗"
     }
 }
+
+enum TestRequestBody {
+    static func data(from request: URLRequest) -> Data? {
+        if let body = request.httpBody {
+            return body
+        }
+        guard let stream = request.httpBodyStream else {
+            return nil
+        }
+
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4_096)
+        while true {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            guard count >= 0 else {
+                return nil
+            }
+            guard count > 0 else {
+                return data
+            }
+            data.append(contentsOf: buffer.prefix(count))
+        }
+    }
+}

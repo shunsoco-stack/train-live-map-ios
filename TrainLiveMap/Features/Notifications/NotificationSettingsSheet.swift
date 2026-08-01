@@ -8,6 +8,8 @@ struct NotificationSettingsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @State private var unregisterConfirmationPresented = false
+    @State private var isUnregistering = false
 
     var body: some View {
         NavigationStack {
@@ -16,6 +18,7 @@ struct NotificationSettingsSheet: View {
                 authorizationSection
                 routeSection
                 backendSection
+                privacySection
             }
             .navigationTitle("運行情報の通知")
             .navigationBarTitleDisplayMode(.inline)
@@ -31,6 +34,24 @@ struct NotificationSettingsSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .mplusAppTypography()
+        .alert(
+            "通知登録を解除しますか？",
+            isPresented: $unregisterConfirmationPresented
+        ) {
+            Button("キャンセル", role: .cancel) {}
+            Button("解除", role: .destructive) {
+                Task {
+                    isUnregistering = true
+                    await notificationManager.unregisterFromServer()
+                    preferences.clearNotificationLineIDs()
+                    isUnregistering = false
+                }
+            }
+        } message: {
+            Text(
+                "通知対象の路線をすべて解除し、サーバーへAPNs購読情報の削除を要求します。"
+            )
+        }
     }
 
     private var explanationSection: some View {
@@ -64,7 +85,6 @@ struct NotificationSettingsSheet: View {
                 Button {
                     Task {
                         await notificationManager.requestAuthorization()
-                        await sync()
                     }
                 } label: {
                     Label("通知を有効にする", systemImage: "bell.fill")
@@ -101,7 +121,6 @@ struct NotificationSettingsSheet: View {
         Section {
             Button("お気に入りを通知対象に追加") {
                 preferences.addFavoritesToNotifications()
-                Task { await sync() }
             }
             .minimumTapTarget()
 
@@ -113,7 +132,6 @@ struct NotificationSettingsSheet: View {
                         },
                         set: { _ in
                             preferences.toggleNotification(for: option.id)
-                            Task { await sync() }
                         }
                     )
                 ) {
@@ -166,12 +184,37 @@ struct NotificationSettingsSheet: View {
                 .font(RailFont.regular(.footnote))
                 .foregroundStyle(.secondary)
             }
+
+            Button(role: .destructive) {
+                unregisterConfirmationPresented = true
+            } label: {
+                HStack {
+                    if isUnregistering {
+                        ProgressView()
+                    }
+                    Label("サーバーの通知登録を解除", systemImage: "bell.slash.fill")
+                        .font(RailFont.bold(.body))
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .disabled(isUnregistering)
+            .accessibilityIdentifier("notification-unregister-button")
         }
     }
 
-    private func sync() async {
-        await notificationManager.syncSubscriptions(
-            lineIDs: preferences.notificationLineIDs
-        )
+    private var privacySection: some View {
+        Section("プライバシー") {
+            Label(
+                "通知配信に必要なAPNs端末トークンと購読路線は、配信サーバーで最終更新から最大180日間保持されます。",
+                systemImage: "hand.raised.fill"
+            )
+            .font(RailFont.regular(.footnote))
+            Text(
+                "通知登録を解除すると、サーバーへ購読情報の削除を要求します。"
+                    + "APNs端末トークンをブラウザ用のWeb Push購読APIへ送信することはありません。"
+            )
+            .font(RailFont.regular(.caption))
+            .foregroundStyle(.secondary)
+        }
     }
 }

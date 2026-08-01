@@ -1,20 +1,32 @@
 import Foundation
 
-enum APIClientError: LocalizedError {
+enum APIClientError: LocalizedError, Equatable, Sendable {
     case invalidURL
+    case insecureURL
     case invalidResponse
     case httpStatus(Int)
     case serverMessage(statusCode: Int, message: String)
+    case forbidden(message: String)
+    case payloadTooLarge(message: String)
+    case unsupportedMediaType(message: String)
+    case rateLimited(retryAfter: Date, message: String)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL:
             "API URLを作成できませんでした"
+        case .insecureURL:
+            "HTTPSではないAPI URLへの通信は許可されていません"
         case .invalidResponse:
             "APIから不正な応答を受信しました"
         case let .httpStatus(statusCode):
             "APIがエラーを返しました（HTTP \(statusCode)）"
         case let .serverMessage(_, message):
+            message
+        case let .forbidden(message),
+             let .payloadTooLarge(message),
+             let .unsupportedMediaType(message),
+             let .rateLimited(_, message):
             message
         }
     }
@@ -35,9 +47,16 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
     private let baseURL: URL
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let now: @Sendable () -> Date
+    private let communityRetryGate = CommunityReportRetryGate()
 
-    init(baseURL: URL, session: URLSession? = nil) {
-        self.baseURL = baseURL
+    init(
+        baseURL: URL,
+        session: URLSession? = nil,
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
+        self.baseURL = AppConfiguration.validatedAPIBaseURL(baseURL)
+        self.now = now
         if let session {
             self.session = session
         } else {
@@ -46,7 +65,11 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
             configuration.timeoutIntervalForResource = 20
             configuration.waitsForConnectivity = true
             configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            self.session = URLSession(configuration: configuration)
+            self.session = URLSession(
+                configuration: configuration,
+                delegate: HTTPSOnlySessionDelegate(),
+                delegateQueue: nil
+            )
         }
         decoder = JSONDecoder.trainLiveMap
     }
@@ -71,15 +94,27 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
         _ vote: CommunityReportVote,
         reporterID: String
     ) async throws -> CommunityReportSubmitResponse {
-        try await fetch(
-            path: "api/community-reports",
-            method: "POST",
-            body: try JSONEncoder.trainLiveMap.encode(vote),
-            headers: [
-                "Content-Type": "application/json",
-                "x-community-reporter": reporterID
-            ]
-        )
+        try await communityRetryGate.validate(now: now())
+        do {
+            let response: CommunityReportSubmitResponse = try await fetch(
+                path: "api/community-reports",
+                method: "POST",
+                body: try JSONEncoder.trainLiveMap.encode(vote),
+                headers: [
+                    "Content-Type": "application/json",
+                    "X-Community-Reporter": reporterID
+                ]
+            )
+            return response
+        } catch let error as APIClientError {
+            if case let .rateLimited(retryAfter, message) = error {
+                await communityRetryGate.block(
+                    until: retryAfter,
+                    message: message
+                )
+            }
+            throw error
+        }
     }
 
     private func fetch<Response: Decodable>(
@@ -88,7 +123,11 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
         body: Data? = nil,
         headers: [String: String] = [:]
     ) async throws -> Response {
-        guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else {
+        let url = baseURL.appendingPathComponent(path)
+        guard AppConfiguration.isSecureHTTPSURL(url) else {
+            throw APIClientError.insecureURL
+        }
+        guard !path.isEmpty else {
             throw APIClientError.invalidURL
         }
         var request = URLRequest(url: url)
@@ -104,12 +143,55 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIClientError.invalidResponse
         }
+        guard AppConfiguration.isSecureHTTPSURL(httpResponse.url) else {
+            throw APIClientError.insecureURL
+        }
         guard (200..<300).contains(httpResponse.statusCode) else {
-            if let payload = try? decoder.decode(APIErrorResponse.self, from: data),
-               !payload.error.isEmpty {
+            let serverMessage = (try? decoder.decode(
+                APIErrorResponse.self,
+                from: data
+            ))?.error.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            switch httpResponse.statusCode {
+            case 403:
+                throw APIClientError.forbidden(
+                    message: serverMessage?.isEmpty == false
+                        ? serverMessage!
+                        : "この投稿は受け付けられませんでした。"
+                )
+            case 413:
+                throw APIClientError.payloadTooLarge(
+                    message: serverMessage?.isEmpty == false
+                        ? serverMessage!
+                        : "投稿データが大きすぎます。"
+                )
+            case 415:
+                throw APIClientError.unsupportedMediaType(
+                    message: serverMessage?.isEmpty == false
+                        ? serverMessage!
+                        : "投稿はJSON形式で送信する必要があります。"
+                )
+            case 429:
+                let retryAfter = RetryAfterParser.date(
+                    from: httpResponse.value(
+                        forHTTPHeaderField: "Retry-After"
+                    ),
+                    now: now()
+                ) ?? now().addingTimeInterval(60)
+                throw APIClientError.rateLimited(
+                    retryAfter: retryAfter,
+                    message: serverMessage?.isEmpty == false
+                        ? serverMessage!
+                        : "投稿が集中しています。しばらく待ってから再投稿してください。"
+                )
+            default:
+                break
+            }
+
+            if let serverMessage, !serverMessage.isEmpty {
                 throw APIClientError.serverMessage(
                     statusCode: httpResponse.statusCode,
-                    message: payload.error
+                    message: serverMessage
                 )
             }
             throw APIClientError.httpStatus(httpResponse.statusCode)
@@ -120,6 +202,59 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
 
 private struct APIErrorResponse: Decodable {
     let error: String
+}
+
+enum RetryAfterParser {
+    static func date(from value: String?, now: Date) -> Date? {
+        guard let value else {
+            return nil
+        }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let seconds = TimeInterval(trimmed), seconds >= 0 {
+            return now.addingTimeInterval(seconds)
+        }
+
+        let formats = [
+            "EEE, dd MMM yyyy HH:mm:ss zzz",
+            "EEEE, dd-MMM-yy HH:mm:ss zzz",
+            "EEE MMM d HH:mm:ss yyyy"
+        ]
+        for format in formats {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            formatter.dateFormat = format
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+        return nil
+    }
+}
+
+private actor CommunityReportRetryGate {
+    private var retryAfter: Date?
+    private var message = ""
+
+    func validate(now: Date) throws {
+        guard let retryAfter else {
+            return
+        }
+        guard retryAfter > now else {
+            self.retryAfter = nil
+            message = ""
+            return
+        }
+        throw APIClientError.rateLimited(
+            retryAfter: retryAfter,
+            message: message
+        )
+    }
+
+    func block(until retryAfter: Date, message: String) {
+        self.retryAfter = retryAfter
+        self.message = message
+    }
 }
 
 extension JSONDecoder {
