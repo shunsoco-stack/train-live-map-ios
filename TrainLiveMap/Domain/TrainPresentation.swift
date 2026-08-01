@@ -21,15 +21,27 @@ enum TrainPresentation {
         var components = [
             train.lineName,
             train.direction.label,
-            "行き先 \(train.destination)",
-            train.status.label
+            "行き先 \(train.destination)"
         ]
+        if let trainNumber = normalizedTrainNumber(train.trainNumber) {
+            components.append("列車番号 \(trainNumber)")
+        }
+        components.append(train.status.label)
         if train.delayMinutes > 0 {
             components.append("\(train.delayMinutes)分遅れ")
         }
         components.append(train.currentSegmentText)
         components.append(train.dataAccuracy.label)
         return components.joined(separator: "、")
+    }
+
+    static func normalizedTrainNumber(_ trainNumber: String?) -> String? {
+        guard let value = trainNumber?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ), !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 
     static func delayBubbleText(for train: TrainLocation) -> String? {
@@ -54,7 +66,7 @@ enum TrainPresentation {
     }
 }
 
-enum TrainFilter: String, CaseIterable, Identifiable {
+enum TrainFilter: String, CaseIterable, Identifiable, Hashable, Sendable {
     case all
     case running
     case stopped
@@ -97,6 +109,55 @@ enum TrainFilter: String, CaseIterable, Identifiable {
             train.status == .suspended
         }
     }
+
+    static func counts(in trains: [TrainLocation]) -> [TrainFilter: Int] {
+        Dictionary(uniqueKeysWithValues: allCases.map { filter in
+            (filter, trains.lazy.filter(filter.matches).count)
+        })
+    }
+}
+
+enum TrainNumberSearchLogic {
+    static func results(
+        in trains: [TrainLocation],
+        query: String
+    ) -> [TrainLocation] {
+        let normalizedQuery = normalize(query)
+        return Array(trains
+            .filter { train in
+                guard let number = TrainPresentation.normalizedTrainNumber(
+                    train.trainNumber
+                ) else {
+                    return false
+                }
+                return normalizedQuery.isEmpty
+                    || normalize(number).hasPrefix(normalizedQuery)
+            }
+            .sorted { left, right in
+                let leftNumber = TrainPresentation.normalizedTrainNumber(
+                    left.trainNumber
+                ) ?? ""
+                let rightNumber = TrainPresentation.normalizedTrainNumber(
+                    right.trainNumber
+                ) ?? ""
+                let comparison = leftNumber.localizedStandardCompare(rightNumber)
+                if comparison == .orderedSame {
+                    return left.lineName.localizedStandardCompare(right.lineName)
+                        == .orderedAscending
+                }
+                return comparison == .orderedAscending
+            }
+            .prefix(5))
+    }
+
+    private static func normalize(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(
+                options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+                locale: Locale(identifier: "ja_JP")
+            )
+    }
 }
 
 struct DataSourcePresentation: Equatable {
@@ -118,8 +179,8 @@ struct DataSourcePresentation: Equatable {
             detail = "列車位置はGPS実測ではなく、駅間情報などからの推定です。"
             isWarning = false
         } else {
-            title = "ODPTライブ（実データ）"
-            detail = "APIが実データとして提供した位置です。"
+            title = "ODPTライブ（位置は駅間推定）"
+            detail = "列車情報は実データですが、位置はGPS実測ではなく、駅間情報などからの推定です。"
             isWarning = false
         }
     }

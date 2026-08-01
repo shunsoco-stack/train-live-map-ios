@@ -11,20 +11,7 @@ struct TrainDetailSheet: View {
                 VStack(spacing: 18) {
                     hero
                     details
-
-                    if train.dataAccuracy != .actual {
-                        Label(
-                            train.dataAccuracy == .mock
-                                ? "モックデータです。実際の運行や位置を示すものではありません。"
-                                : "ODPTライブを駅間情報などから求めた位置推定です。GPSの現在地ではありません。",
-                            systemImage: "location.magnifyingglass"
-                        )
-                        .font(RailFont.regular(.footnote))
-                        .foregroundStyle(.secondary)
-                        .padding(14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
-                    }
+                    positionNotice
                 }
                 .padding()
                 .frame(maxWidth: 620)
@@ -74,10 +61,17 @@ struct TrainDetailSheet: View {
         }
         .padding(16)
         .railPanel()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(TrainPresentation.accessibilityLabel(for: train))
     }
 
     private var details: some View {
         VStack(spacing: 0) {
+            if let trainNumber = TrainPresentation.normalizedTrainNumber(
+                train.trainNumber
+            ) {
+                DetailRow(label: "列車番号", value: trainNumber)
+            }
             DetailRow(label: "路線", value: train.lineName)
             DetailRow(label: "方向", value: train.direction.displayText)
             DetailRow(label: "行き先", value: train.destination)
@@ -119,6 +113,39 @@ struct TrainDetailSheet: View {
             }
         }
         .railPanel()
+    }
+
+    private var positionNotice: some View {
+        Label(
+            positionNoticeText,
+            systemImage: train.dataAccuracy == .mock
+                ? "exclamationmark.triangle.fill"
+                : "location.magnifyingglass"
+        )
+        .font(RailFont.bold(.footnote))
+        .foregroundStyle(train.dataAccuracy == .mock ? .orange : .secondary)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(positionNoticeText)
+        .accessibilityIdentifier("estimated-position-notice")
+    }
+
+    private var positionNoticeText: String {
+        let positionExplanation =
+            "位置は駅間情報などからの推定です。GPSによる正確な現在位置ではありません。"
+        switch train.dataAccuracy {
+        case .actual:
+            return positionExplanation
+                + " 列車情報はODPTの実データです。"
+        case .estimated:
+            return positionExplanation
+                + " ODPTライブの駅間推定データです。"
+        case .mock:
+            return positionExplanation
+                + " モックデータのため、実際の運行状況や位置を示すものではありません。"
+        }
     }
 
     private var statusSystemImage: String {

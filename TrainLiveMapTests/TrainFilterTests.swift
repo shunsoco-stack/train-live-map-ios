@@ -44,4 +44,15 @@ final class TrainFilterTests: XCTestCase {
         XCTAssertTrue(TrainFilter.stopped.matches(stopped))
         XCTAssertFalse(TrainFilter.running.matches(stopped))
     }
+
+    func testFilterCountsExposeZeroCountForDisabledFilters() throws {
+        let trains = try TestFixture.trainsResponse.trains
+        let counts = TrainFilter.counts(in: trains)
+
+        XCTAssertEqual(counts[.all], 3)
+        XCTAssertEqual(counts[.running], 1)
+        XCTAssertEqual(counts[.delayed], 1)
+        XCTAssertEqual(counts[.suspended], 1)
+        XCTAssertEqual(counts[.stopped], 0)
+    }
 }

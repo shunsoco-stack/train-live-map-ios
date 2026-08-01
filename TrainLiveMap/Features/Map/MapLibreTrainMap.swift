@@ -1,6 +1,14 @@
+import CoreLocation
 import MapLibre
 import SwiftUI
 import UIKit
+
+enum MapLocationEvent: Equatable, Sendable {
+    case requesting
+    case centered
+    case cancelled
+    case failed(String)
+}
 
 struct MapLibreTrainMap: UIViewRepresentable {
     let trains: [TrainLocation]
@@ -8,10 +16,16 @@ struct MapLibreTrainMap: UIViewRepresentable {
     let selectedTrainID: String?
     let isActive: Bool
     let reduceMotion: Bool
+    let locationRequestID: Int
     let onSelectTrain: (String) -> Void
+    let onLocationEvent: (MapLocationEvent) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onSelectTrain: onSelectTrain)
+        Coordinator(
+            onSelectTrain: onSelectTrain,
+            onLocationEvent: onLocationEvent,
+            initialLocationRequestID: locationRequestID
+        )
     }
 
     func makeUIView(context: Context) -> MLNMapView {
@@ -21,6 +35,8 @@ struct MapLibreTrainMap: UIViewRepresentable {
         )
         let mapView = MLNMapView(frame: .zero, styleURL: styleURL)
         mapView.delegate = context.coordinator
+        // Current location is used only for one-shot camera movement after a tap.
+        // Keeping this off avoids continuous tracking and location persistence.
         mapView.showsUserLocation = false
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         mapView.maximumZoomLevel = 18
@@ -35,13 +51,15 @@ struct MapLibreTrainMap: UIViewRepresentable {
 
     func updateUIView(_ mapView: MLNMapView, context: Context) {
         context.coordinator.onSelectTrain = onSelectTrain
+        context.coordinator.onLocationEvent = onLocationEvent
         context.coordinator.update(
             mapView: mapView,
             trains: trains,
             railwayLines: railwayLines,
             selectedTrainID: selectedTrainID,
             isActive: isActive,
-            reduceMotion: reduceMotion
+            reduceMotion: reduceMotion,
+            locationRequestID: locationRequestID
         )
     }
 
@@ -53,8 +71,9 @@ struct MapLibreTrainMap: UIViewRepresentable {
         uiView.delegate = nil
     }
 
-    final class Coordinator: NSObject, MLNMapViewDelegate {
+    final class Coordinator: NSObject, MLNMapViewDelegate, CLLocationManagerDelegate {
         var onSelectTrain: (String) -> Void
+        var onLocationEvent: (MapLocationEvent) -> Void
 
         private weak var mapView: MLNMapView?
         private var trainAnnotations: [String: TrainPointAnnotation] = [:]
@@ -71,9 +90,20 @@ struct MapLibreTrainMap: UIViewRepresentable {
         private var reduceMotion = false
         private var hasSetViewport = false
         private var viewportNeedsUpdate = true
+        private var lastLocationRequestID: Int
+        private var locationRequestInFlight = false
+        private var oneShotLocationRequested = false
+        private var locationManager: CLLocationManager?
+        private var locationTimeoutTask: Task<Void, Never>?
 
-        init(onSelectTrain: @escaping (String) -> Void) {
+        init(
+            onSelectTrain: @escaping (String) -> Void,
+            onLocationEvent: @escaping (MapLocationEvent) -> Void,
+            initialLocationRequestID: Int
+        ) {
             self.onSelectTrain = onSelectTrain
+            self.onLocationEvent = onLocationEvent
+            lastLocationRequestID = initialLocationRequestID
             super.init()
         }
 
@@ -91,6 +121,13 @@ struct MapLibreTrainMap: UIViewRepresentable {
         func detach() {
             displayLink?.invalidate()
             displayLink = nil
+            locationTimeoutTask?.cancel()
+            locationTimeoutTask = nil
+            locationManager?.stopUpdatingLocation()
+            locationManager?.delegate = nil
+            locationManager = nil
+            locationRequestInFlight = false
+            oneShotLocationRequested = false
             mapView = nil
         }
 
@@ -100,13 +137,15 @@ struct MapLibreTrainMap: UIViewRepresentable {
             railwayLines: [RailwayMapLine],
             selectedTrainID: String?,
             isActive: Bool,
-            reduceMotion: Bool
+            reduceMotion: Bool,
+            locationRequestID: Int
         ) {
             if self.isActive != isActive {
                 self.isActive = isActive
                 if !isActive {
                     motionEngine.freeze(at: .now)
                     displayLink?.isPaused = true
+                    cancelLocationRequestForBackground()
                 }
             }
 
@@ -140,9 +179,17 @@ struct MapLibreTrainMap: UIViewRepresentable {
             }
 
             updateAnnotationCoordinates(at: .now)
+            if selectionChanged {
+                focusOnSelectedTrain(on: mapView)
+            }
             displayLink?.isPaused = !isActive
                 || reduceMotion
                 || !motionEngine.hasActiveMotion(at: .now)
+
+            if locationRequestID != lastLocationRequestID {
+                lastLocationRequestID = locationRequestID
+                requestCurrentLocation()
+            }
         }
 
         func mapView(
@@ -160,6 +207,7 @@ struct MapLibreTrainMap: UIViewRepresentable {
             } else {
                 fitViewportToDisplayedRailways(on: mapView)
             }
+            focusOnSelectedTrain(on: mapView)
         }
 
         func mapView(
@@ -465,6 +513,233 @@ struct MapLibreTrainMap: UIViewRepresentable {
                     isSelected: trainID == selectedTrainID
                 )
             }
+        }
+
+        private func requestCurrentLocation() {
+            guard isActive else {
+                emitLocationEvent(.cancelled)
+                return
+            }
+            guard !locationRequestInFlight else {
+                return
+            }
+            guard CLLocationManager.locationServicesEnabled() else {
+                emitLocationEvent(
+                    .failed(
+                        "位置情報サービスがオフです。設定で位置情報サービスを有効にしてください。"
+                    )
+                )
+                return
+            }
+
+            locationRequestInFlight = true
+            oneShotLocationRequested = false
+            emitLocationEvent(.requesting)
+
+            let manager = locationManager ?? makeLocationManager()
+            locationManager = manager
+            switch manager.authorizationStatus {
+            case .notDetermined:
+                manager.requestWhenInUseAuthorization()
+            case .authorizedAlways, .authorizedWhenInUse:
+                requestOneLocation(using: manager)
+            case .denied:
+                finishLocationRequest(
+                    with: .failed(
+                        "位置情報の利用が許可されていません。設定からこのアプリの位置情報を許可してください。"
+                    )
+                )
+            case .restricted:
+                finishLocationRequest(
+                    with: .failed(
+                        "この端末では位置情報の利用が制限されています。"
+                    )
+                )
+            @unknown default:
+                finishLocationRequest(
+                    with: .failed("現在地を利用できません。")
+                )
+            }
+        }
+
+        private func makeLocationManager() -> CLLocationManager {
+            let manager = CLLocationManager()
+            manager.delegate = self
+            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            manager.activityType = .other
+            manager.allowsBackgroundLocationUpdates = false
+            manager.showsBackgroundLocationIndicator = false
+            return manager
+        }
+
+        private func requestOneLocation(using manager: CLLocationManager) {
+            guard locationRequestInFlight, !oneShotLocationRequested else {
+                return
+            }
+            oneShotLocationRequested = true
+            locationTimeoutTask?.cancel()
+            locationTimeoutTask = Task { @MainActor [weak self] in
+                do {
+                    try await Task.sleep(for: .seconds(15))
+                } catch {
+                    return
+                }
+                guard let self, self.locationRequestInFlight else {
+                    return
+                }
+                self.finishLocationRequest(
+                    with: .failed(
+                        "現在地を取得できませんでした。電波状況を確認して、もう一度お試しください。"
+                    )
+                )
+            }
+            manager.requestLocation()
+        }
+
+        func locationManagerDidChangeAuthorization(
+            _ manager: CLLocationManager
+        ) {
+            guard locationRequestInFlight else {
+                return
+            }
+            guard isActive else {
+                cancelLocationRequestForBackground()
+                return
+            }
+            switch manager.authorizationStatus {
+            case .authorizedAlways, .authorizedWhenInUse:
+                requestOneLocation(using: manager)
+            case .denied:
+                finishLocationRequest(
+                    with: .failed(
+                        "位置情報の利用が許可されていません。設定からこのアプリの位置情報を許可してください。"
+                    )
+                )
+            case .restricted:
+                finishLocationRequest(
+                    with: .failed(
+                        "この端末では位置情報の利用が制限されています。"
+                    )
+                )
+            case .notDetermined:
+                break
+            @unknown default:
+                finishLocationRequest(
+                    with: .failed("現在地を利用できません。")
+                )
+            }
+        }
+
+        func locationManager(
+            _ manager: CLLocationManager,
+            didUpdateLocations locations: [CLLocation]
+        ) {
+            guard locationRequestInFlight else {
+                return
+            }
+            guard isActive else {
+                cancelLocationRequestForBackground()
+                return
+            }
+            let newestAcceptableLocation = locations.reversed().first {
+                location in
+                let coordinate = location.coordinate
+                return location.horizontalAccuracy >= 0
+                    && abs(location.timestamp.timeIntervalSinceNow) <= 120
+                    && coordinate.latitude.isFinite
+                    && coordinate.longitude.isFinite
+                    && (-90...90).contains(coordinate.latitude)
+                    && (-180...180).contains(coordinate.longitude)
+            }
+            guard let location = newestAcceptableLocation,
+                  let mapView else {
+                finishLocationRequest(
+                    with: .failed(
+                        "現在地を取得できませんでした。電波状況を確認して、もう一度お試しください。"
+                    )
+                )
+                return
+            }
+
+            mapView.setCenter(
+                location.coordinate,
+                zoomLevel: max(mapView.zoomLevel, 14),
+                animated: hasSetViewport && !reduceMotion
+            )
+            hasSetViewport = true
+            finishLocationRequest(with: .centered)
+        }
+
+        func locationManager(
+            _ manager: CLLocationManager,
+            didFailWithError error: Error
+        ) {
+            guard locationRequestInFlight else {
+                return
+            }
+            guard isActive else {
+                cancelLocationRequestForBackground()
+                return
+            }
+            if let locationError = error as? CLError,
+               locationError.code == .denied {
+                finishLocationRequest(
+                    with: .failed(
+                        "位置情報の利用が許可されていません。設定からこのアプリの位置情報を許可してください。"
+                    )
+                )
+            } else {
+                finishLocationRequest(
+                    with: .failed(
+                        "現在地を取得できませんでした。電波状況を確認して、もう一度お試しください。"
+                    )
+                )
+            }
+        }
+
+        private func finishLocationRequest(with event: MapLocationEvent) {
+            locationTimeoutTask?.cancel()
+            locationTimeoutTask = nil
+            locationRequestInFlight = false
+            oneShotLocationRequested = false
+            emitLocationEvent(event)
+        }
+
+        private func cancelLocationRequestForBackground() {
+            guard locationRequestInFlight else {
+                return
+            }
+            locationTimeoutTask?.cancel()
+            locationTimeoutTask = nil
+            locationManager?.stopUpdatingLocation()
+            locationRequestInFlight = false
+            oneShotLocationRequested = false
+            emitLocationEvent(.cancelled)
+        }
+
+        private func emitLocationEvent(_ event: MapLocationEvent) {
+            DispatchQueue.main.async { [weak self] in
+                self?.onLocationEvent(event)
+            }
+        }
+
+        private func focusOnSelectedTrain(on mapView: MLNMapView) {
+            guard let selectedTrainID,
+                  trainsByID[selectedTrainID] != nil,
+                  let position = motionEngine.positions(at: .now)[selectedTrainID]
+            else {
+                return
+            }
+            let coordinate = CLLocationCoordinate2D(
+                latitude: position.latitude,
+                longitude: position.longitude
+            )
+            mapView.setCenter(
+                coordinate,
+                zoomLevel: max(mapView.zoomLevel, 13),
+                animated: hasSetViewport && !reduceMotion
+            )
+            hasSetViewport = true
         }
 
         @objc

@@ -9,8 +9,10 @@ struct CachedTrainData: Sendable {
 
 protocol TrainRepository: Sendable {
     func loadCachedData() async -> CachedTrainData
-    func refreshTrains() async throws -> TrainsAPIResponse
-    func refreshServiceStatus() async throws -> ServiceStatusAPIResponse
+    func refreshTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse
+    func refreshServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse
     func refreshRailways() async throws -> RailwaysAPIResponse
     func refreshCommunityReports() async throws -> CommunityReportsAPIResponse
     func submitCommunityReport(
@@ -46,14 +48,16 @@ actor LiveTrainRepository: TrainRepository {
         )
     }
 
-    func refreshTrains() async throws -> TrainsAPIResponse {
-        let response = try await api.fetchTrains()
+    func refreshTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse {
+        let response = try await api.fetchTrains(lineIDs: lineIDs)
         await cache.saveTrains(response)
         return response
     }
 
-    func refreshServiceStatus() async throws -> ServiceStatusAPIResponse {
-        let response = try await api.fetchServiceStatus()
+    func refreshServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse {
+        let response = try await api.fetchServiceStatus(lineIDs: lineIDs)
         await cache.saveServiceStatus(response)
         return response
     }

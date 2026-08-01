@@ -63,6 +63,33 @@ struct AboutSheet: View {
                     )
                     .font(RailFont.regular(.caption))
                     .foregroundStyle(.secondary)
+                    Text(
+                        "端末の現在地は、現在地ボタンをタップした後に許可された場合だけ取得し、"
+                            + "地図を現在地付近へ移動するために使用します。位置情報はサーバーへ送信せず、端末にも保存しません。"
+                            + "列車の推定位置も地図表示・移動以外のAPIへ追加送信しません。"
+                    )
+                    .font(RailFont.regular(.caption))
+                    .foregroundStyle(.secondary)
+                }
+
+                Section("法務情報") {
+                    Link(destination: Self.privacyPolicyURL) {
+                        Label(
+                            "プライバシーポリシー",
+                            systemImage: "hand.raised.fill"
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityHint("Safariでプライバシーポリシーを開きます")
+
+                    Link(destination: Self.termsURL) {
+                        Label(
+                            "利用規約",
+                            systemImage: "doc.text.fill"
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityHint("Safariで利用規約を開きます")
                 }
 
                 Section("お問い合わせ") {
@@ -96,4 +123,11 @@ struct AboutSheet: View {
         .presentationDragIndicator(.visible)
         .mplusAppTypography()
     }
+
+    private static let privacyPolicyURL = URL(
+        string: "https://train-live-map.vercel.app/privacy"
+    )!
+    private static let termsURL = URL(
+        string: "https://train-live-map.vercel.app/terms"
+    )!
 }

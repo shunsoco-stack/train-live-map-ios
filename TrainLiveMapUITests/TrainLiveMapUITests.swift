@@ -17,6 +17,11 @@ final class TrainLiveMapUITests: XCTestCase {
         XCTAssertTrue(app.buttons["notification-settings-button"].exists)
         XCTAssertTrue(app.buttons["community-report-button"].exists)
         XCTAssertTrue(app.buttons["railway-filter-button"].exists)
+        XCTAssertTrue(app.buttons["current-location-button"].exists)
+        XCTAssertEqual(
+            app.buttons["current-location-button"].label,
+            "現在地付近へ地図を移動"
+        )
         XCTAssertTrue(app.buttons["train-filter-all"].exists)
         XCTAssertTrue(app.buttons["train-filter-delayed"].exists)
         XCTAssertTrue(
@@ -126,6 +131,65 @@ final class TrainLiveMapUITests: XCTestCase {
                 .firstMatch
                 .exists
         )
+    }
+
+    func testTrainNumberSearchLegendDetailAndDisabledFilters() {
+        let app = makeApp()
+        app.launch()
+
+        let stoppedFilter = app.buttons["train-filter-stopped"]
+        XCTAssertTrue(stoppedFilter.waitForExistence(timeout: 8))
+        XCTAssertFalse(stoppedFilter.isEnabled)
+        XCTAssertTrue(app.buttons["train-filter-all"].isSelected)
+
+        let searchButton = app.buttons["train-search-button"]
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
+        searchButton.tap()
+        XCTAssertTrue(
+            app.navigationBars["列車番号で検索"]
+                .waitForExistence(timeout: 5)
+        )
+
+        let searchField = app.searchFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: 4))
+        searchField.tap()
+        searchField.typeText("123")
+
+        let result = app.buttons["train-search-result-ui-yamanote"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        result.tap()
+
+        XCTAssertTrue(
+            app.navigationBars["列車の詳細"]
+                .waitForExistence(timeout: 8)
+        )
+        XCTAssertTrue(app.staticTexts["123G"].exists)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["estimated-position-notice"]
+                .waitForExistence(timeout: 4)
+        )
+        XCTAssertTrue(
+            app.staticTexts
+                .matching(
+                    NSPredicate(
+                        format: "label CONTAINS 'GPSによる正確な現在位置ではありません'"
+                    )
+                )
+                .firstMatch
+                .exists
+        )
+
+        app.buttons["列車の詳細を閉じる"].tap()
+        let legendButton = app.buttons["train-legend-button"]
+        XCTAssertTrue(legendButton.waitForExistence(timeout: 5))
+        legendButton.tap()
+        XCTAssertTrue(
+            app.navigationBars["地図の凡例"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.staticTexts["列車の状態"].exists)
+        XCTAssertTrue(app.staticTexts["進行方向"].exists)
+        XCTAssertTrue(app.staticTexts["位置推定"].exists)
     }
 
     private func makeApp() -> XCUIApplication {

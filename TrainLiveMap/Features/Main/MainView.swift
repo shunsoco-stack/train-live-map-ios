@@ -1,5 +1,13 @@
 import SwiftUI
 
+enum MapSceneActivityPolicy {
+    static func keepsOneShotLocationRequestAlive(
+        during scenePhase: ScenePhase
+    ) -> Bool {
+        scenePhase != .background
+    }
+}
+
 struct MainView: View {
     @ObservedObject private var viewModel: MainViewModel
     @ObservedObject private var preferences: UserPreferences
@@ -13,6 +21,14 @@ struct MainView: View {
     @State private var communitySheetPresented = false
     @State private var notificationSheetPresented = false
     @State private var aboutSheetPresented = false
+    @State private var trainSearchSheetPresented = false
+    @State private var legendSheetPresented = false
+    @State private var pendingSearchedTrainID: String?
+    @State private var locationRequestID = 0
+    @State private var locationIsRequesting = false
+    @State private var locationStatusMessage: String?
+    @State private var locationAlert: LocationAlert?
+    @State private var locationFeedbackDismissTask: Task<Void, Never>?
     @State private var adBannerLoaded = false
 
     init(
@@ -35,11 +51,17 @@ struct MainView: View {
                     trains: viewModel.filteredTrains,
                     railwayLines: viewModel.visibleRailwayLines,
                     selectedTrainID: viewModel.selectedTrainID,
-                    isActive: scenePhase == .active,
+                    // A system permission alert temporarily changes the scene
+                    // to inactive. Keep the one-shot request alive there, and
+                    // stop it only after the app truly enters background.
+                    isActive: MapSceneActivityPolicy
+                        .keepsOneShotLocationRequestAlive(during: scenePhase),
                     reduceMotion: reduceMotion,
+                    locationRequestID: locationRequestID,
                     onSelectTrain: { trainID in
                         viewModel.selectedTrainID = trainID
-                    }
+                    },
+                    onLocationEvent: handleMapLocationEvent
                 )
                 .ignoresSafeArea(edges: .horizontal)
 
@@ -73,8 +95,30 @@ struct MainView: View {
         .sheet(isPresented: $aboutSheetPresented) {
             AboutSheet()
         }
+        .sheet(
+            isPresented: $trainSearchSheetPresented,
+            onDismiss: selectPendingSearchedTrain
+        ) {
+            TrainNumberSearchSheet(
+                trains: visibleCurrentTrains,
+                selectedTrainID: viewModel.selectedTrainID,
+                onSelectTrain: { trainID in
+                    pendingSearchedTrainID = trainID
+                }
+            )
+        }
+        .sheet(isPresented: $legendSheetPresented) {
+            TrainMapLegendSheet()
+        }
         .sheet(item: selectedTrainBinding) { train in
             TrainDetailSheet(train: train)
+        }
+        .alert(item: $locationAlert) { alert in
+            Alert(
+                title: Text("現在地を表示できません"),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .onChange(of: notificationManager.pendingLineID) { _, lineID in
             guard let lineID,
@@ -91,12 +135,212 @@ struct MainView: View {
                 await notificationManager.syncSubscriptions(lineIDs: lineIDs)
             }
         }
+        .onDisappear {
+            locationFeedbackDismissTask?.cancel()
+        }
     }
 
     private var visibleRailwayOptions: [RailwayFilterOption] {
         let visibleIDs = preferences.effectiveVisibleLineIDs
         return viewModel.selectableRailwayOptions.filter {
             visibleIDs.contains($0.id)
+        }
+    }
+
+    private var visibleCurrentTrains: [TrainLocation] {
+        let visibleIDs = preferences.effectiveVisibleLineIDs
+        return viewModel.currentTrains.filter { visibleIDs.contains($0.lineId) }
+    }
+
+    private var trainFilterCounts: [TrainFilter: Int] {
+        TrainFilter.counts(in: visibleCurrentTrains)
+    }
+
+    private var shouldShowTrainEmptyState: Bool {
+        if preferences.effectiveVisibleLineIDs.isEmpty {
+            return true
+        }
+        if !visibleCurrentTrains.isEmpty {
+            return viewModel.filteredTrains.isEmpty
+        }
+        guard !viewModel.isLoadingTrains else {
+            return false
+        }
+        return viewModel.trainsResponse != nil
+            || viewModel.trainErrorMessage != nil
+            || viewModel.isOffline
+            || preferences.effectiveVisibleLineIDs.isEmpty
+    }
+
+    private var trainEmptyTitle: String {
+        if preferences.effectiveVisibleLineIDs.isEmpty {
+            if viewModel.railwayErrorMessage != nil {
+                return "路線情報を取得できません"
+            }
+            return "表示する路線がありません"
+        }
+        if viewModel.trainsAreStale || viewModel.isOffline {
+            return "現在の列車位置を表示できません"
+        }
+        if !visibleCurrentTrains.isEmpty, viewModel.filteredTrains.isEmpty {
+            return "条件に合う列車がありません"
+        }
+        return "列車位置情報がありません"
+    }
+
+    private var trainEmptyMessage: String {
+        if preferences.effectiveVisibleLineIDs.isEmpty {
+            return [
+                "路線選択から表示する路線を選んでください。",
+                viewModel.railwayErrorMessage,
+                viewModel.isOffline
+                    ? "オフライン中は再送しません。接続が戻ると自動で更新します。"
+                    : nil
+            ]
+            .compactMap { $0 }
+            .joined(separator: " ")
+        }
+        if viewModel.isOffline {
+            return trainEmptyMessageWithRequestContext(
+                "オフラインのため、過去の列車位置は現在位置として表示していません。"
+            )
+        }
+        if viewModel.trainsAreStale {
+            return trainEmptyMessageWithRequestContext(
+                "更新に失敗しました。最後に成功した古いデータが0件のため、列車を表示できません。"
+            )
+        }
+        if !visibleCurrentTrains.isEmpty, viewModel.filteredTrains.isEmpty {
+            return "別の列車状態フィルターを選んでください。"
+        }
+        return trainEmptyMessageWithRequestContext(
+            "表示中の路線では、現在表示できる列車がありません。"
+        )
+    }
+
+    private var shouldOfferTrainRetry: Bool {
+        viewModel.canRetryRailwayRequest
+            || (visibleCurrentTrains.isEmpty && viewModel.canRetryTrainRequest)
+    }
+
+    private var networkErrorMessage: String? {
+        let parts = [
+            viewModel.trainErrorMessage,
+            viewModel.trainErrorMessage == nil
+                ? nil
+                : viewModel.trainRetrySuppressionMessage,
+            viewModel.serviceErrorMessage,
+            viewModel.serviceErrorMessage == nil
+                ? nil
+                : viewModel.serviceRetrySuppressionMessage,
+            viewModel.railwayErrorMessage
+        ]
+        let messages = parts.compactMap { $0 }
+        return messages.isEmpty ? nil : messages.joined(separator: " ")
+    }
+
+    private var canRetryNetworkError: Bool {
+        (viewModel.trainErrorMessage != nil && viewModel.canRetryTrainRequest)
+            || viewModel.canRetryServiceStatusRequest
+            || viewModel.canRetryRailwayRequest
+    }
+
+    private func retryEmptyState() {
+        Task {
+            if viewModel.canRetryRailwayRequest {
+                await viewModel.refreshRailways()
+            }
+            if viewModel.canRetryTrainRequest {
+                await viewModel.refreshTrains()
+            }
+        }
+    }
+
+    private func retryNetworkErrors() {
+        Task {
+            if viewModel.railwayErrorMessage != nil,
+               viewModel.canRetryRailwayRequest {
+                await viewModel.refreshRailways()
+            }
+            if viewModel.trainErrorMessage != nil,
+               viewModel.canRetryTrainRequest {
+                await viewModel.refreshTrains()
+            }
+            if viewModel.serviceErrorMessage != nil,
+               viewModel.canRetryServiceStatusRequest {
+                await viewModel.refreshServiceStatus()
+            }
+        }
+    }
+
+    private func trainEmptyMessageWithRequestContext(_ base: String) -> String {
+        [
+            base,
+            viewModel.trainErrorMessage,
+            viewModel.serviceErrorMessage,
+            viewModel.railwayErrorMessage,
+            trainLastSuccessfulUpdateMessage,
+            viewModel.trainRetrySuppressionMessage
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
+    }
+
+    private var trainLastSuccessfulUpdateMessage: String? {
+        guard viewModel.trainsAreStale
+                || viewModel.trainErrorMessage != nil
+                || viewModel.isOffline else {
+            return nil
+        }
+        guard let response = viewModel.trainsResponse else {
+            return "最後に成功した列車位置データはありません。"
+        }
+        let updatedAt = response.dataUpdatedAt.formatted(
+            date: .abbreviated,
+            time: .standard
+        )
+        return "最後に成功した更新は\(updatedAt)です。"
+    }
+
+    private func selectPendingSearchedTrain() {
+        defer { pendingSearchedTrainID = nil }
+        guard let pendingSearchedTrainID,
+              visibleCurrentTrains.contains(
+                where: { $0.id == pendingSearchedTrainID }
+              ) else {
+            return
+        }
+        viewModel.selectedFilter = .all
+        viewModel.selectedTrainID = pendingSearchedTrainID
+    }
+
+    @MainActor
+    private func handleMapLocationEvent(_ event: MapLocationEvent) {
+        locationFeedbackDismissTask?.cancel()
+        locationFeedbackDismissTask = nil
+
+        switch event {
+        case .requesting:
+            locationIsRequesting = true
+            locationStatusMessage = "現在地を確認しています"
+        case .centered:
+            locationIsRequesting = false
+            locationStatusMessage = "現在地付近へ地図を移動しました"
+            locationFeedbackDismissTask = Task { @MainActor in
+                do {
+                    try await Task.sleep(for: .seconds(4))
+                } catch {
+                    return
+                }
+                locationStatusMessage = nil
+            }
+        case .cancelled:
+            locationIsRequesting = false
+            locationStatusMessage = nil
+        case let .failed(message):
+            locationIsRequesting = false
+            locationStatusMessage = nil
+            locationAlert = LocationAlert(message: message)
         }
     }
 
@@ -210,6 +454,30 @@ struct MainView: View {
                     DataSourceBadge(response: response)
                 }
                 Spacer(minLength: 0)
+
+                MapCircleButton(
+                    systemName: locationIsRequesting
+                        ? "location.magnifyingglass"
+                        : "location.fill",
+                    foreground: .primary,
+                    background: Color(.systemBackground),
+                    label: locationIsRequesting
+                        ? "現在地を確認中"
+                        : "現在地付近へ地図を移動",
+                    isEnabled: !locationIsRequesting
+                ) {
+                    locationStatusMessage = nil
+                    locationRequestID &+= 1
+                }
+                .accessibilityIdentifier("current-location-button")
+            }
+
+            if let locationStatusMessage {
+                LocationStatusPanel(
+                    message: locationStatusMessage,
+                    isLoading: locationIsRequesting
+                )
+                .frame(maxWidth: 600)
             }
 
             if !viewModel.visibleServiceStatuses.isEmpty {
@@ -220,27 +488,72 @@ struct MainView: View {
                 .frame(maxWidth: 600)
             }
 
-            if let error = viewModel.trainErrorMessage
-                ?? viewModel.serviceErrorMessage
-                ?? viewModel.railwayErrorMessage {
-                ErrorPanel(message: error, onRetry: viewModel.retryAll)
+            if !shouldShowTrainEmptyState,
+               let error = networkErrorMessage {
+                ErrorPanel(
+                    message: error,
+                    onRetry: canRetryNetworkError ? retryNetworkErrors : nil
+                )
                     .frame(maxWidth: 600)
             } else if let dataSourceNotice {
                 NoticePanel(message: dataSourceNotice)
                     .frame(maxWidth: 600)
             }
 
-            Spacer(minLength: 68)
+            Spacer(minLength: 24)
+
+            if shouldShowTrainEmptyState {
+                TrainEmptyStateView(
+                    title: trainEmptyTitle,
+                    message: trainEmptyMessage,
+                    systemImage: viewModel.trainsAreStale
+                        || viewModel.railwayErrorMessage != nil
+                        ? "clock.badge.exclamationmark"
+                        : "train.side.front.car",
+                    actionTitle: shouldOfferTrainRetry ? "再試行" : nil,
+                    action: shouldOfferTrainRetry
+                        ? retryEmptyState
+                        : nil
+                )
+                .padding(.horizontal, 24)
+            }
+
+            Spacer(minLength: 24)
 
             HStack(alignment: .bottom, spacing: 7) {
                 VStack(alignment: .leading, spacing: 7) {
                     DataUpdatePanel(viewModel: viewModel)
-                    TrainFilterBar(selection: $viewModel.selectedFilter)
+                    TrainFilterBar(
+                        selection: $viewModel.selectedFilter,
+                        counts: trainFilterCounts
+                    )
                 }
 
                 Spacer(minLength: 0)
 
                 VStack(spacing: 7) {
+                    HStack(spacing: 7) {
+                        MapCircleButton(
+                            systemName: "magnifyingglass",
+                            foreground: .primary,
+                            background: Color(.systemBackground),
+                            label: "列車番号で検索"
+                        ) {
+                            trainSearchSheetPresented = true
+                        }
+                        .accessibilityIdentifier("train-search-button")
+
+                        MapCircleButton(
+                            systemName: "questionmark.circle.fill",
+                            foreground: .primary,
+                            background: Color(.systemBackground),
+                            label: "列車状態と位置の凡例"
+                        ) {
+                            legendSheetPresented = true
+                        }
+                        .accessibilityIdentifier("train-legend-button")
+                    }
+
                     MapCircleButton(
                         systemName: "person.3.fill",
                         foreground: .white,
@@ -334,6 +647,39 @@ struct MainView: View {
                 }
             }
         )
+    }
+}
+
+private struct LocationAlert: Identifiable {
+    let id = UUID()
+    let message: String
+}
+
+private struct LocationStatusPanel: View {
+    let message: String
+    let isLoading: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityHidden(true)
+            } else {
+                Image(systemName: "location.fill")
+                    .foregroundStyle(RailTheme.inboundBlue)
+                    .accessibilityHidden(true)
+            }
+            Text(message)
+                .font(RailFont.bold(.caption))
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
+        .railPanel(cornerRadius: 13)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message)
+        .accessibilityIdentifier("current-location-status")
     }
 }
 
@@ -447,7 +793,7 @@ private struct ServiceStatusPanel: View {
 
 private struct ErrorPanel: View {
     let message: String
-    let onRetry: () -> Void
+    let onRetry: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -458,11 +804,13 @@ private struct ErrorPanel: View {
                 .font(RailFont.regular(.caption))
                 .lineLimit(3)
             Spacer(minLength: 4)
-            Button("再試行", action: onRetry)
-                .font(RailFont.bold(.caption))
-                .buttonStyle(.borderedProminent)
-                .tint(RailTheme.accent)
-                .minimumTapTarget()
+            if let onRetry {
+                Button("再試行", action: onRetry)
+                    .font(RailFont.bold(.caption))
+                    .buttonStyle(.borderedProminent)
+                    .tint(RailTheme.accent)
+                    .minimumTapTarget()
+            }
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 6)
@@ -489,37 +837,35 @@ private struct DataUpdatePanel: View {
     @ObservedObject var viewModel: MainViewModel
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            HStack(spacing: 6) {
-                if viewModel.isLoadingTrains {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel("更新中")
-                } else {
-                    Image(
-                        systemName: viewModel.trainsAreStale
-                            ? "clock.badge.exclamationmark"
-                            : "clock"
-                    )
-                    .foregroundStyle(viewModel.trainsAreStale ? .orange : .secondary)
-                    .accessibilityHidden(true)
-                }
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(updateText)
-                        .font(RailFont.regular(.caption2))
-                        .monospacedDigit()
-                    Text(nextUpdateText(now: context.date))
-                        .font(RailFont.regular(.caption2))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+        HStack(spacing: 6) {
+            if viewModel.isLoadingTrains {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel("更新中")
+            } else {
+                Image(
+                    systemName: viewModel.trainsAreStale
+                        ? "clock.badge.exclamationmark"
+                        : "clock"
+                )
+                .foregroundStyle(viewModel.trainsAreStale ? .orange : .secondary)
+                .accessibilityHidden(true)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 6)
-            .railPanel(cornerRadius: 11)
-            .accessibilityElement(children: .combine)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(updateText)
+                    .font(RailFont.regular(.caption2))
+                    .monospacedDigit()
+                Text(nextUpdateText)
+                    .font(RailFont.regular(.caption2))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
         }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .railPanel(cornerRadius: 11)
+        .accessibilityElement(children: .combine)
     }
 
     private var updateText: String {
@@ -533,26 +879,47 @@ private struct DataUpdatePanel: View {
             + response.dataUpdatedAt.formatted(date: .omitted, time: .standard)
     }
 
-    private func nextUpdateText(now: Date) -> String {
+    private var nextUpdateText: String {
+        if viewModel.isOffline {
+            return "オフライン中は更新停止"
+        }
         guard let next = viewModel.nextTrainRefreshAt else {
             return "バックグラウンド中は更新停止"
         }
-        let remaining = max(0, Int(ceil(next.timeIntervalSince(now))))
-        return "次回更新まで \(remaining)秒"
+        let remaining = max(0, Int(ceil(next.timeIntervalSince(.now))))
+        return "次回更新まで約 \(remaining)秒"
     }
 }
 
 private struct TrainFilterBar: View {
     @Binding var selection: TrainFilter
+    let counts: [TrainFilter: Int]
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
                 ForEach(TrainFilter.allCases) { filter in
+                    let count = counts[filter] ?? 0
                     Button {
                         selection = filter
                     } label: {
-                        Label(filter.label, systemImage: filter.systemImage)
+                        HStack(spacing: 4) {
+                            Image(systemName: filter.systemImage)
+                                .accessibilityHidden(true)
+                            Text(filter.label)
+                            Text("\(count)")
+                                .font(RailFont.extraBold(.caption2))
+                                .monospacedDigit()
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(
+                                    (selection == filter
+                                        ? Color.white
+                                        : Color.secondary
+                                    ).opacity(0.16),
+                                    in: Capsule()
+                                )
+                        }
                             .font(RailFont.bold(.caption))
                             .lineLimit(1)
                             .padding(.horizontal, 9)
@@ -572,6 +939,19 @@ private struct TrainFilterBar: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .disabled(count == 0)
+                    .opacity(count == 0 ? 0.48 : 1)
+                    .accessibilityLabel("\(filter.label)、\(count)件")
+                    .accessibilityValue(
+                        selection == filter
+                            ? "選択中"
+                            : count == 0 ? "該当列車なし" : ""
+                    )
+                    .accessibilityHint(
+                        count == 0
+                            ? "このフィルターは選択できません"
+                            : "地図に表示する列車状態を絞り込みます"
+                    )
                     .accessibilityAddTraits(
                         selection == filter ? .isSelected : []
                     )
@@ -588,6 +968,7 @@ private struct MapCircleButton: View {
     let foreground: Color
     let background: Color
     let label: String
+    var isEnabled = true
     let action: () -> Void
 
     var body: some View {
@@ -603,6 +984,8 @@ private struct MapCircleButton: View {
                 .shadow(color: .black.opacity(0.25), radius: 5, y: 2)
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.55)
         .accessibilityLabel(label)
     }
 }

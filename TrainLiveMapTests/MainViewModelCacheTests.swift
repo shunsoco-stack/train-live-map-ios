@@ -10,6 +10,7 @@ final class MainViewModelCacheTests: XCTestCase {
         let preferences = UserPreferences(
             defaults: UserDefaults(suiteName: "cache-test-\(UUID().uuidString)")!
         )
+        preferences.setVisibleLineIDs(Set(cachedResponse.trains.map(\.lineId)))
         let viewModel = MainViewModel(
             api: api,
             cache: cache,
@@ -23,6 +24,7 @@ final class MainViewModelCacheTests: XCTestCase {
         await viewModel.refreshTrains()
         XCTAssertEqual(viewModel.trainsResponse, cachedResponse)
         XCTAssertTrue(viewModel.trainsAreStale)
+        XCTAssertFalse(viewModel.currentTrains.isEmpty)
         XCTAssertNotNil(viewModel.trainErrorMessage)
     }
 
@@ -33,6 +35,7 @@ final class MainViewModelCacheTests: XCTestCase {
         let preferences = UserPreferences(
             defaults: UserDefaults(suiteName: "success-test-\(UUID().uuidString)")!
         )
+        preferences.setVisibleLineIDs(Set(response.trains.map(\.lineId)))
         let viewModel = MainViewModel(
             api: api,
             cache: cache,

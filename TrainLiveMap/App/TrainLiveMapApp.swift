@@ -16,10 +16,19 @@ struct TrainLiveMapApp: App {
         let repository: TrainRepository = AppConfiguration.isUITesting
             ? UITestTrainRepository()
             : LiveTrainRepository(configuration: configuration)
+        let preferences: UserPreferences
+        if AppConfiguration.isUITesting {
+            let suiteName = "com.shunsoco.trainlivemap.uitesting"
+            let defaults = UserDefaults(suiteName: suiteName)!
+            defaults.removePersistentDomain(forName: suiteName)
+            preferences = UserPreferences(defaults: defaults)
+        } else {
+            preferences = UserPreferences()
+        }
         _viewModel = StateObject(
             wrappedValue: MainViewModel(
                 repository: repository,
-                preferences: UserPreferences()
+                preferences: preferences
             )
         )
         _adManager = StateObject(wrappedValue: AdManager(configuration: configuration))
@@ -40,7 +49,13 @@ struct TrainLiveMapApp: App {
                         .mplusAppTypography()
                         .task {
                             await viewModel.loadCachedDataIfNeeded()
-                            viewModel.activate()
+                            // Cache loading may finish after the scene has moved
+                            // to the background. Only start network polling while
+                            // the app is actually active; onChange below starts it
+                            // immediately when the scene becomes active again.
+                            if scenePhase == .active {
+                                viewModel.activate()
+                            }
                             await notificationManager.configure(
                                 with: .current
                             )

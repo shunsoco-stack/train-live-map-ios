@@ -2,9 +2,9 @@ import Foundation
 
 @MainActor
 final class MainViewModel: ObservableObject {
-    static let trainRefreshInterval: TimeInterval = 7
-    static let serviceRefreshInterval: TimeInterval = 30
-    static let communityRefreshInterval: TimeInterval = 20
+    static let trainRefreshInterval: TimeInterval = 10
+    static let serviceRefreshInterval: TimeInterval = 10
+    static let communityRefreshInterval: TimeInterval = 10
 
     @Published private(set) var trainsResponse: TrainsAPIResponse?
     @Published private(set) var serviceStatusResponse: ServiceStatusAPIResponse?
@@ -26,6 +26,7 @@ final class MainViewModel: ObservableObject {
     @Published private(set) var isLoadingCommunityReports = false
     @Published private(set) var isSubmittingCommunityReport = false
     @Published private(set) var nextTrainRefreshAt: Date?
+    @Published private(set) var isOffline = false
 
     @Published var selectedFilter: TrainFilter = .all
     @Published var selectedTrainID: String?
@@ -33,36 +34,55 @@ final class MainViewModel: ObservableObject {
     let preferences: UserPreferences
 
     private let repository: TrainRepository
+    private let connectivityMonitor: NetworkConnectivityMonitoring
     private var trainPollingTask: Task<Void, Never>?
     private var servicePollingTask: Task<Void, Never>?
     private var communityPollingTask: Task<Void, Never>?
     private var railwayTask: Task<Void, Never>?
+    private var connectivityTask: Task<Void, Never>?
     private var isActive = false
     private var hasLoadedCache = false
+    private var hasCompletedStartupRailwayRefresh = false
+    private var isRefreshingTrains = false
+    private var isRefreshingServiceStatus = false
+    private var isRefreshingRailways = false
+    private var isRefreshingCommunityReports = false
+    private var trainBadRequestLineIDs: Set<String>?
+    private var serviceBadRequestLineIDs: Set<String>?
+    private var trainRetryNotBefore: Date?
+    private var serviceRetryNotBefore: Date?
 
     init(
         repository: TrainRepository,
-        preferences: UserPreferences
+        preferences: UserPreferences,
+        connectivityMonitor: NetworkConnectivityMonitoring =
+            NWPathConnectivityMonitor()
     ) {
         self.repository = repository
         self.preferences = preferences
+        self.connectivityMonitor = connectivityMonitor
+        isOffline = connectivityMonitor.currentStatus == .offline
     }
 
     convenience init(configuration: AppConfiguration = .current) {
         self.init(
             repository: LiveTrainRepository(configuration: configuration),
-            preferences: UserPreferences()
+            preferences: UserPreferences(),
+            connectivityMonitor: NWPathConnectivityMonitor()
         )
     }
 
     convenience init(
         api: TrainAPIService,
         cache: ResponseCaching,
-        preferences: UserPreferences
+        preferences: UserPreferences,
+        connectivityMonitor: NetworkConnectivityMonitoring =
+            AssumedOnlineConnectivityMonitor()
     ) {
         self.init(
             repository: LiveTrainRepository(api: api, cache: cache),
-            preferences: preferences
+            preferences: preferences,
+            connectivityMonitor: connectivityMonitor
         )
     }
 
@@ -70,7 +90,7 @@ final class MainViewModel: ObservableObject {
         guard let selectedTrainID else {
             return nil
         }
-        return trainsResponse?.trains.first { $0.id == selectedTrainID }
+        return currentTrains.first { $0.id == selectedTrainID }
     }
 
     var selectableRailwayOptions: [RailwayFilterOption] {
@@ -83,10 +103,107 @@ final class MainViewModel: ObservableObject {
     }
 
     var filteredTrains: [TrainLocation] {
+        currentTrains.filter(selectedFilter.matches)
+    }
+
+    /// Keep the last successful snapshot visible during an online API failure,
+    /// with `trainsAreStale` driving the warning UI. Once connectivity is known
+    /// to be offline, never present that historical snapshot as a current map or
+    /// search result.
+    var currentTrains: [TrainLocation] {
+        guard !isOffline else {
+            return []
+        }
         let visibleIDs = preferences.effectiveVisibleLineIDs
         return trainsResponse?.trains.filter {
-            visibleIDs.contains($0.lineId) && selectedFilter.matches($0)
+            visibleIDs.contains($0.lineId)
         } ?? []
+    }
+
+    /// Whether a user-initiated retry can issue a train request right now.
+    /// A disabled retry is important here: HTTP 400 remains blocked until the
+    /// selected line set changes, while HTTP 429/503 remain blocked until the
+    /// server-provided (or safe default) retry deadline.
+    var canRetryTrainRequest: Bool {
+        let lineIDs = preferences.effectiveVisibleLineIDs
+        guard isActive,
+              !isOffline,
+              !isLoadingTrains,
+              !isRefreshingTrains,
+              !lineIDs.isEmpty else {
+            return false
+        }
+        if trainBadRequestLineIDs == lineIDs {
+            return false
+        }
+        if let trainRetryNotBefore, trainRetryNotBefore > .now {
+            return false
+        }
+        return true
+    }
+
+    var canRetryServiceStatusRequest: Bool {
+        let lineIDs = preferences.effectiveVisibleLineIDs
+        guard serviceErrorMessage != nil,
+              isActive,
+              !isOffline,
+              !isRefreshingServiceStatus,
+              !lineIDs.isEmpty else {
+            return false
+        }
+        if serviceBadRequestLineIDs == lineIDs {
+            return false
+        }
+        if let serviceRetryNotBefore, serviceRetryNotBefore > .now {
+            return false
+        }
+        return true
+    }
+
+    var canRetryRailwayRequest: Bool {
+        isActive
+            && !isOffline
+            && !isLoadingRailways
+            && !isRefreshingRailways
+            && railwayErrorMessage != nil
+    }
+
+    /// Explanation shown inside the single train empty-state surface when a
+    /// retry is intentionally suppressed.
+    var trainRetrySuppressionMessage: String? {
+        let lineIDs = preferences.effectiveVisibleLineIDs
+        if isOffline {
+            return "オフライン中は再送しません。接続が戻ると自動で更新します。"
+        }
+        if trainBadRequestLineIDs == lineIDs {
+            return "この路線指定では再送を停止しています。路線選択を変更してください。"
+        }
+        if let trainRetryNotBefore, trainRetryNotBefore > .now {
+            let time = trainRetryNotBefore.formatted(
+                date: .omitted,
+                time: .shortened
+            )
+            return "サーバーの指定に従い、\(time)までは再送しません。"
+        }
+        return nil
+    }
+
+    var serviceRetrySuppressionMessage: String? {
+        let lineIDs = preferences.effectiveVisibleLineIDs
+        if isOffline {
+            return "オフライン中は公式運行情報を再送しません。"
+        }
+        if serviceBadRequestLineIDs == lineIDs {
+            return "この路線指定では公式運行情報の再送を停止しています。路線選択を変更してください。"
+        }
+        if let serviceRetryNotBefore, serviceRetryNotBefore > .now {
+            let time = serviceRetryNotBefore.formatted(
+                date: .omitted,
+                time: .shortened
+            )
+            return "サーバーの指定に従い、公式運行情報は\(time)までは再送しません。"
+        }
+        return nil
     }
 
     var visibleServiceStatuses: [ServiceStatus] {
@@ -97,6 +214,7 @@ final class MainViewModel: ObservableObject {
             && trainsResponse?.source == .odpt
             && trainsResponse?.isMock == false
             && trainsResponse?.fallback == false
+            && !trainsAreStale
         let resolvedStatuses = ServiceStatusLogic.resolvedStatuses(
             statuses,
             trains: canUseODPTTrainFallback ? trainsResponse?.trains ?? [] : []
@@ -151,24 +269,30 @@ final class MainViewModel: ObservableObject {
         }
         isActive = true
 
-        trainPollingTask = Task { [weak self] in
-            await self?.runTrainPolling()
-        }
-        servicePollingTask = Task { [weak self] in
-            await self?.runServicePolling()
-        }
-        communityPollingTask = Task { [weak self] in
-            await self?.runCommunityPolling()
-        }
-        if railwaysResponse == nil {
-            railwayTask = Task { [weak self] in
-                await self?.refreshRailways()
+        isOffline = connectivityMonitor.currentStatus == .offline
+        connectivityTask = Task { [weak self, connectivityMonitor] in
+            for await status in connectivityMonitor.statusUpdates() {
+                guard !Task.isCancelled else {
+                    return
+                }
+                self?.networkStatusDidChange(status)
             }
         }
+        guard !isOffline else {
+            markNetworkDataUnavailable()
+            return
+        }
+        startNetworkTasks()
     }
 
     func deactivate() {
         isActive = false
+        connectivityTask?.cancel()
+        connectivityTask = nil
+        cancelNetworkTasks()
+    }
+
+    private func cancelNetworkTasks() {
         trainPollingTask?.cancel()
         servicePollingTask?.cancel()
         communityPollingTask?.cancel()
@@ -184,50 +308,113 @@ final class MainViewModel: ObservableObject {
         guard isActive else {
             return
         }
+        hasCompletedStartupRailwayRefresh = false
         deactivate()
         activate()
-        railwayTask = Task { [weak self] in
-            await self?.refreshRailways()
-        }
     }
 
     func refreshTrains() async {
+        guard !isOffline else {
+            return
+        }
+        let lineIDs = preferences.effectiveVisibleLineIDs
+        guard !lineIDs.isEmpty else {
+            isLoadingTrains = false
+            trainErrorMessage = nil
+            selectedTrainID = nil
+            return
+        }
+        if let blocked = trainBadRequestLineIDs {
+            guard blocked != lineIDs else {
+                return
+            }
+            trainBadRequestLineIDs = nil
+        }
+        if let retryNotBefore = trainRetryNotBefore,
+           retryNotBefore > .now {
+            return
+        }
+        guard !isRefreshingTrains else {
+            return
+        }
+        isRefreshingTrains = true
+        defer { isRefreshingTrains = false }
+
         isLoadingTrains = trainsResponse == nil
         defer { isLoadingTrains = false }
         do {
-            let response = try await repository.refreshTrains()
+            let response = try await repository.refreshTrains(lineIDs: lineIDs)
             guard !Task.isCancelled else {
                 return
             }
             trainsResponse = response
             trainsAreStale = false
             trainErrorMessage = nil
+            trainRetryNotBefore = nil
         } catch is CancellationError {
             return
         } catch {
             trainsAreStale = trainsResponse != nil
             trainErrorMessage = Self.message(for: error, resource: "列車位置")
+            applyTrainRequestSuppression(for: error, lineIDs: lineIDs)
         }
     }
 
     func refreshServiceStatus() async {
+        guard !isOffline else {
+            return
+        }
+        let lineIDs = preferences.effectiveVisibleLineIDs
+        guard !lineIDs.isEmpty else {
+            serviceErrorMessage = nil
+            return
+        }
+        if let blocked = serviceBadRequestLineIDs {
+            guard blocked != lineIDs else {
+                return
+            }
+            serviceBadRequestLineIDs = nil
+        }
+        if let retryNotBefore = serviceRetryNotBefore,
+           retryNotBefore > .now {
+            return
+        }
+        guard !isRefreshingServiceStatus else {
+            return
+        }
+        isRefreshingServiceStatus = true
+        defer { isRefreshingServiceStatus = false }
+
         do {
-            let response = try await repository.refreshServiceStatus()
+            let response = try await repository.refreshServiceStatus(
+                lineIDs: lineIDs
+            )
             guard !Task.isCancelled else {
                 return
             }
             serviceStatusResponse = response
             serviceStatusIsStale = false
             serviceErrorMessage = nil
+            serviceRetryNotBefore = nil
         } catch is CancellationError {
             return
         } catch {
             serviceStatusIsStale = serviceStatusResponse != nil
             serviceErrorMessage = Self.message(for: error, resource: "公式運行情報")
+            applyServiceRequestSuppression(for: error, lineIDs: lineIDs)
         }
     }
 
     func refreshRailways() async {
+        guard !isOffline else {
+            return
+        }
+        guard !isRefreshingRailways else {
+            return
+        }
+        isRefreshingRailways = true
+        defer { isRefreshingRailways = false }
+
         isLoadingRailways = railwaysResponse == nil
         defer { isLoadingRailways = false }
         do {
@@ -238,6 +425,9 @@ final class MainViewModel: ObservableObject {
             railwaysResponse = response
             railwayErrorMessage = nil
             preferences.reconcile(with: response.options)
+            if hasCompletedStartupRailwayRefresh {
+                startSelectedLinePollingTasks()
+            }
         } catch is CancellationError {
             return
         } catch {
@@ -246,6 +436,15 @@ final class MainViewModel: ObservableObject {
     }
 
     func refreshCommunityReports() async {
+        guard !isOffline else {
+            return
+        }
+        guard !isRefreshingCommunityReports else {
+            return
+        }
+        isRefreshingCommunityReports = true
+        defer { isRefreshingCommunityReports = false }
+
         isLoadingCommunityReports = communityReportsResponse == nil
         defer { isLoadingCommunityReports = false }
         do {
@@ -274,6 +473,15 @@ final class MainViewModel: ObservableObject {
         delayMinutes: Int?
     ) async -> Bool {
         communitySuccessMessage = nil
+        guard !isSubmittingCommunityReport else {
+            communityErrorMessage = "投稿を送信中です。完了までお待ちください。"
+            return false
+        }
+        guard !isOffline else {
+            communityErrorMessage =
+                "オフラインのため、接続が戻るまで投稿を送信しません。"
+            return false
+        }
         guard let vote = CommunityReportLogic.validatedVote(
             lineID: lineID,
             status: status,
@@ -283,7 +491,8 @@ final class MainViewModel: ObservableObject {
             return false
         }
 
-        guard preferences.reporterIDIsSecurelyStored else {
+        guard preferences.reporterIDIsSecurelyStored,
+              CommunityReporterIDValidator.isValid(preferences.reporterID) else {
             communityErrorMessage =
                 "匿名端末IDをKeychainへ安全に保存できないため、投稿を送信しません。"
             return false
@@ -326,6 +535,13 @@ final class MainViewModel: ObservableObject {
                 ? "\(message) あと\(remaining)秒は再送しません。"
                 : message
             return false
+        } catch let APIClientError.serviceUnavailable(retryAfter, message) {
+            preferences.recordCommunityRetry(until: retryAfter)
+            let remaining = preferences.remainingCommunityRetry()
+            communityErrorMessage = remaining > 0
+                ? "\(message) あと\(remaining)秒は再送しません。"
+                : message
+            return false
         } catch {
             communityErrorMessage = Self.message(
                 for: error,
@@ -346,10 +562,11 @@ final class MainViewModel: ObservableObject {
             guard !Task.isCancelled else {
                 return
             }
-            nextTrainRefreshAt = .now.addingTimeInterval(Self.trainRefreshInterval)
+            let delay = trainPollingDelay()
+            nextTrainRefreshAt = .now.addingTimeInterval(delay)
             do {
                 try await Task.sleep(
-                    for: .seconds(Self.trainRefreshInterval),
+                    for: .seconds(delay),
                     clock: .continuous
                 )
             } catch {
@@ -364,9 +581,10 @@ final class MainViewModel: ObservableObject {
             guard !Task.isCancelled else {
                 return
             }
+            let delay = servicePollingDelay()
             do {
                 try await Task.sleep(
-                    for: .seconds(Self.serviceRefreshInterval),
+                    for: .seconds(delay),
                     clock: .continuous
                 )
             } catch {
@@ -396,5 +614,146 @@ final class MainViewModel: ObservableObject {
         let detail = (error as? LocalizedError)?.errorDescription
             ?? error.localizedDescription
         return "\(resource)を更新できませんでした。\(detail)"
+    }
+
+    private func startNetworkTasks() {
+        guard isActive, !isOffline else {
+            return
+        }
+        if communityPollingTask == nil {
+            communityPollingTask = Task { [weak self] in
+                await self?.runCommunityPolling()
+            }
+        }
+
+        // Cached railway metadata keeps the selector usable offline, but the
+        // server response remains authoritative. Refresh it once per app
+        // startup before the first selected-line request so renamed/removed
+        // IDs cannot linger and trigger a second request after reconciliation.
+        if !hasCompletedStartupRailwayRefresh, railwayTask == nil {
+            railwayTask = Task { [weak self] in
+                guard let self else {
+                    return
+                }
+                while self.isRefreshingRailways {
+                    do {
+                        try await Task.sleep(for: .milliseconds(10))
+                    } catch {
+                        return
+                    }
+                }
+                guard self.isActive, !self.isOffline, !Task.isCancelled else {
+                    return
+                }
+                await self.refreshRailways()
+                guard !Task.isCancelled else {
+                    return
+                }
+                self.hasCompletedStartupRailwayRefresh = true
+                self.railwayTask = nil
+                self.startSelectedLinePollingTasks()
+            }
+            return
+        }
+
+        guard hasCompletedStartupRailwayRefresh else {
+            return
+        }
+
+        guard railwaysResponse != nil else {
+            return
+        }
+        startSelectedLinePollingTasks()
+    }
+
+    private func startSelectedLinePollingTasks() {
+        guard isActive, !isOffline, railwaysResponse != nil else {
+            return
+        }
+        if trainPollingTask == nil {
+            trainPollingTask = Task { [weak self] in
+                await self?.runTrainPolling()
+            }
+        }
+        if servicePollingTask == nil {
+            servicePollingTask = Task { [weak self] in
+                await self?.runServicePolling()
+            }
+        }
+    }
+
+    private func networkStatusDidChange(_ status: NetworkConnectivityStatus) {
+        guard status != .unknown else {
+            return
+        }
+        let nowOffline = status == .offline
+        guard nowOffline != isOffline else {
+            return
+        }
+        isOffline = nowOffline
+        if nowOffline {
+            markNetworkDataUnavailable()
+            cancelNetworkTasks()
+        } else {
+            startNetworkTasks()
+        }
+    }
+
+    private func markNetworkDataUnavailable() {
+        trainsAreStale = trainsResponse != nil
+        serviceStatusIsStale = serviceStatusResponse != nil
+        communityReportsAreStale = communityReportsResponse != nil
+        selectedTrainID = nil
+        nextTrainRefreshAt = nil
+    }
+
+    private func applyTrainRequestSuppression(
+        for error: Error,
+        lineIDs: Set<String>
+    ) {
+        switch error as? APIClientError {
+        case .badRequest, .invalidLineIDs:
+            trainBadRequestLineIDs = lineIDs
+        case let .rateLimited(retryAfter, _),
+             let .serviceUnavailable(retryAfter, _):
+            trainRetryNotBefore = retryAfter
+        default:
+            break
+        }
+    }
+
+    private func applyServiceRequestSuppression(
+        for error: Error,
+        lineIDs: Set<String>
+    ) {
+        switch error as? APIClientError {
+        case .badRequest, .invalidLineIDs:
+            serviceBadRequestLineIDs = lineIDs
+        case let .rateLimited(retryAfter, _),
+             let .serviceUnavailable(retryAfter, _):
+            serviceRetryNotBefore = retryAfter
+        default:
+            break
+        }
+    }
+
+    private func trainPollingDelay(now: Date = .now) -> TimeInterval {
+        guard let trainRetryNotBefore, trainRetryNotBefore > now else {
+            return Self.trainRefreshInterval
+        }
+        return max(
+            Self.trainRefreshInterval,
+            trainRetryNotBefore.timeIntervalSince(now)
+        )
+    }
+
+    private func servicePollingDelay(now: Date = .now) -> TimeInterval {
+        guard let serviceRetryNotBefore, serviceRetryNotBefore > now else {
+            return Self.serviceRefreshInterval
+        }
+        return max(
+            Self.serviceRefreshInterval,
+            serviceRetryNotBefore.timeIntervalSince(now)
+        )
     }
 }

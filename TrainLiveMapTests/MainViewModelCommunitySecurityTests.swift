@@ -82,11 +82,13 @@ private actor RateLimitedAPIService: TrainAPIService {
         self.retryAfter = retryAfter
     }
 
-    func fetchTrains() async throws -> TrainsAPIResponse {
+    func fetchTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse {
         throw TestError.failed
     }
 
-    func fetchServiceStatus() async throws -> ServiceStatusAPIResponse {
+    func fetchServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse {
         throw TestError.failed
     }
 

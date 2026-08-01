@@ -46,6 +46,26 @@ final class TrainPresentationTests: XCTestCase {
         XCTAssertEqual(DataAccuracy.mock.label, "モックデータ")
     }
 
+    func testActualTrainDataStillDescribesItsPositionAsEstimated() throws {
+        let response = try TestFixture.trainsResponse
+        let actualTrain = try XCTUnwrap(
+            response.trains.first { $0.dataAccuracy == .actual }
+        )
+        let actualOnlyResponse = TrainsAPIResponse(
+            trains: [actualTrain],
+            generatedAt: response.generatedAt,
+            dataUpdatedAt: response.dataUpdatedAt,
+            isMock: false,
+            source: .odpt,
+            fallback: false,
+            notice: nil
+        )
+
+        let presentation = DataSourcePresentation(response: actualOnlyResponse)
+        XCTAssertEqual(presentation.title, "ODPTライブ（位置は駅間推定）")
+        XCTAssertTrue(presentation.detail?.contains("GPS実測ではなく") == true)
+    }
+
     func testAccessibilityLabelIncludesStateDirectionDestinationAndDelay() throws {
         let delayed = try train(
             "train-delayed",
@@ -54,6 +74,7 @@ final class TrainPresentationTests: XCTestCase {
         let label = TrainPresentation.accessibilityLabel(for: delayed)
 
         XCTAssertTrue(label.contains("山手線"))
+        XCTAssertTrue(label.contains("列車番号"))
         XCTAssertTrue(label.contains("上り"))
         XCTAssertTrue(label.contains("東京"))
         XCTAssertTrue(label.contains("遅延"))

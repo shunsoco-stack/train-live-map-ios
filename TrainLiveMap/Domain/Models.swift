@@ -241,10 +241,7 @@ struct ServiceStatusAPIResponse: Codable, Equatable, Sendable {
     let notice: String?
 
     var allStatuses: [ServiceStatus] {
-        guard let serviceStatuses, !serviceStatuses.isEmpty else {
-            return [serviceStatus]
-        }
-        return serviceStatuses
+        serviceStatuses ?? [serviceStatus]
     }
 }
 

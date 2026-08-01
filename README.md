@@ -27,13 +27,17 @@ JR東日本の公式アプリではありません。WebViewは使用してお�
 - 表示路線とお気に入りを別々に永続化し、「お気に入りのみ」で絞り込み
 - APIカテゴリごとに利用可能な先頭1路線だけを初回表示
 - 走行中、停車中、遅延、運転見合わせの列車フィルター
+- 列車番号の前方一致検索、選択列車への地図移動と詳細表示
+- 明示タップ時だけ現在地を取得し、保存・送信せず地図を移動する現在地ボタン
+- 列車状態、上り／下り、駅間推定位置を説明する地図凡例
 - 状態別の電車の顔、上下方向文字、遅延吹き出し、見合わせバッジ
 - 列車詳細Bottom SheetとVoiceOver向け読み上げ
 - `routeSegment`／路線ポリライン上へクランプした滑らかな位置補間
 - 表示路線だけを対象にした公式運行情報と、最新列車遅延による安全な補完
 - 直近30分の「みんなの運行情報」と匿名投稿
 - ユーザー操作後だけ要求する通知許可、HTTPS専用のAPNs端末登録／解除クライアント
-- 最終成功レスポンスの端末キャッシュと、失敗時の古いデータ表示／再試行
+- 最終成功レスポンスの端末キャッシュと、失敗時の更新時刻表示／再試行
+- オンライン更新失敗時は最終成功位置を「古いデータ」と明示して保持し、オフライン時は非表示
 - バックグラウンド時のポーリング・アニメーション停止、復帰時の即時更新
 - M PLUS Rounded 1c、ライト／ダーク、Dynamic Type、Reduce Motion、
   Reduce Transparency、iPhone／iPad対応
@@ -118,19 +122,29 @@ cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
 
 | Method | Path | 用途 | 更新 |
 | --- | --- | --- | --- |
-| GET | `/api/trains` | 列車スナップショット | 7秒 |
-| GET | `/api/service-status` | 公式運行情報 | 30秒 |
+| GET | `/api/trains?lines=...` | 選択路線の列車スナップショット | 10秒 |
+| GET | `/api/service-status?lines=...` | 選択路線の公式運行情報 | 10秒 |
 | GET | `/api/railways` | 路線形状と選択肢 | 起動時 |
-| GET | `/api/community-reports` | 利用者投稿の30分集計 | 20秒／シート表示時 |
+| GET | `/api/community-reports` | 利用者投稿の30分集計 | 10秒／シート表示時 |
 | POST | `/api/community-reports` | 匿名Reporter IDによる投稿 | ユーザー操作時 |
 
 `/api/trains`では`trains`に加えて`generatedAt`、`dataUpdatedAt`、`isMock`、
 `source`、`fallback`、`notice`をデコードします。列車モデルは`routeSegment`、
 `fromStation`、`toStation`、`railDirection`の有無にも対応します。
 
+列車と公式運行情報には、`/api/railways.options[].id`から選択中のIDだけを昇順で
+連結し、`?lines=tokaido,yamanote`形式で渡します。IDは重複を除き、
+`^[a-z0-9-]{1,64}$`、最大44路線、クエリ値1,024文字以内を通信前にも検証します。
+表示路線が0件なら両APIを呼びません。`serviceStatuses`がレスポンスに存在する場合は、
+空配列でも互換用`serviceStatus`へフォールバックせず、その空配列を選択路線の結果として
+扱います。
+
 `/api/railways`の`lines`を地図描画に使用し、`options.available`と`coverage`を
 選択可否、`coverageNote`を提供範囲の注意書きに使用します。路線一覧や利用可否を
-iOS側の固定値だけでは決めません。
+iOS側の固定値だけでは決めません。起動直後は保存済みカタログを選択画面の復元に
+使えますが、選択路線の列車・運行情報を取得する前に`/api/railways`を1回更新し、
+削除・名称変更・利用可否をサーバーの最新結果へ整合します。更新失敗時はキャッシュを
+フォールバック表示し、キャッシュがなければ自動ポーリングを開始せず再試行を案内します。
 
 `/api/service-status`のODPT明示情報を最優先します。公式情報が平常または空相当の
 場合だけ、同一路線で更新2分以内のODPT列車を確認し、遅れがあれば平常表示を
@@ -148,6 +162,11 @@ ODPT失敗時のフォールバックはVercel側の責務です。
 案内します。`429`では`Retry-After`の秒数または日時までクライアント側でも再送を
 禁止し、自動リトライしません。Reporter IDをKeychainへ保存できない場合は投稿を
 fail-closedで中止します。
+
+Reporter IDは送信のたびに`^[A-Za-z0-9_-]{12,100}$`へ適合することを確認します。
+列車・運行情報APIの`400`は路線選択が変わるまで、`429`は`Retry-After`まで、
+`503`は`Retry-After`または次の通常10秒周期まで再送しません。同じエンドポイントの
+処理中要求、ボタン連打、再帰的な自動リトライも行いません。
 
 `ODPT_ACCESS_TOKEN`、Redis認証情報、`VAPID_PRIVATE_KEY`、
 `REPORTER_HASH_SALT`、移行用の`COMMUNITY_REPORT_HMAC_SECRET`はすべて
@@ -194,16 +213,19 @@ APIの`coverageNote`を表示します。
 
 ## 更新、キャッシュ、列車アニメーション
 
-- 列車: 7秒
-- 公式運行情報: 30秒
-- みんなの運行情報: 20秒
+- 列車: 10秒
+- 公式運行情報: 10秒
+- みんなの運行情報: 10秒
 - 路線: 起動時
 - バックグラウンド: 全ポーリングと補間を停止
 - フォアグラウンド復帰: 即時更新
 
-成功レスポンス4種はApplication Support配下へ原子的に保存します。通信失敗時は
-画面を空にせず、最後の成功データ、古いデータであること、最終更新時刻、再試行を
-表示します。
+成功レスポンス4種はApplication Support配下へ原子的に保存します。通信失敗時も
+キャッシュと最終更新時刻を保持します。オンライン中の一時的なAPI失敗では、最後の
+成功位置を地図・検索・詳細に残し、「古いデータ」、最終更新、エラーを同時表示します。
+端末がオフラインになった場合だけ、過去座標を現在位置として扱わないよう列車を
+地図・検索・詳細から隠し、ネットワーク復帰時に即時取得し直します。
+停止時間の表示だけを1秒ごとに局所更新し、地図や画面全体を1秒周期で更新しません。
 
 列車位置は`routeSegment.coordinates`を優先し、なければ緯度経度を選択路線の
 ポリラインへ投影します。進行方向と区間の`fromFraction`／`toFraction`を使い、
@@ -280,7 +302,11 @@ Google Mobile Ads SDKを初期化します。本物の広告IDをGitへコミッ
 - 状態を色だけでなく、顔・文字・記号・VoiceOverで表現
 - Reduce Motion時は列車補間を無効化
 - Reduce Transparency時はパネルの不透明度を上げる
-- 位置情報権限や不要な権限は要求しない
+- 位置情報は現在地ボタンのタップ後にだけ「使用中のみ」を要求し、地図移動後に追跡しない
+- 端末の現在地は保存・サーバー送信せず、列車の推定座標も地図表示・移動以外のAPIへ追加送信しない
+
+アプリ内から[プライバシーポリシー](https://train-live-map.vercel.app/privacy)と
+[利用規約](https://train-live-map.vercel.app/terms)を開けます。
 
 ## ビルドとテスト
 
@@ -304,22 +330,52 @@ xcodebuild \
   build
 ```
 
-署名付きSimulatorテストは、インストール済み端末名へ変更して実行します。
+Simulatorテストは、インストール済みのOSと端末名へ変更して実行します。
 
 ```sh
 xcodebuild \
   -project TrainLiveMap.xcodeproj \
   -scheme TrainLiveMap \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' \
   test
 ```
 
+2026-08-01のフェーズ3〜6最終検証結果:
+
+- 実行先: iPhone 17 Pro Simulator／iOS 26.4
+- Unit Test: 86件中86件成功、失敗0
+- UI Test: 4件中4件成功、失敗0
+- Release Simulator build: 成功
+
+この最終検証で実行した端末はiPhone 17 Proです。iPhone SE相当、Pro Max相当、
+iPadのレイアウトシナリオもテストコードと過去フェーズの確認対象に含まれますが、
+フェーズ3〜6反映後の現コードを使った最新の端末別実測とは区別してください。
+追加のiPhone SE Simulator実行はCoreSimulatorサービスのホスト側IPCエラーで起動前に
+終了したため、アプリのテスト成功としては数えていません。
+
 テスト対象にはAPIデコード、実／推定／モック、路線カラー、選択・検索・お気に入り、
-状態フィルター、補間・クランプ、顔・吹き出し・方向、キャッシュ、投稿集計、
+列車番号の前方一致検索、0件フィルター、単一の空状態、状態フィルター、
+補間・クランプ、顔・吹き出し・方向、キャッシュ、投稿集計、
 Community APIのJSON／Keychain／HTTPエラー／再送制限、APNs登録・解除契約、
-通知判定、Reduce Motion、VoiceOver文言、最大Dynamic Type、ダークモード、
-iPhone SE相当／標準／Pro Max／iPadのUIが含まれます。
+同一GET／POSTの重複抑止、初回現在地許可中のscene遷移、通知判定、Reduce Motion、
+VoiceOver文言、最大Dynamic Type、ダークモード、
+小型iPhone／標準／Pro Max／iPadを想定したレイアウトシナリオが含まれます。
+
+## 未設定の外部項目
+
+ソース、Info.plist、xcconfig、Gitへ本物の秘密情報や外部IDは固定していません。
+App Store提出までに次を外部環境で設定してください。
+
+- Apple Developer Team、配布証明書／Provisioning Profile
+- APNs Provider Keyまたは証明書、Team ID、Key ID
+- ネイティブAPNs登録／解除／配信バックエンドと`APNS_REGISTRATION_URL`
+- Release用`ADMOB_APP_ID`と`ADMOB_BANNER_UNIT_ID`
+- 必要地域向けのUMPメッセージ
+- App Store ConnectのサポートURL、マーケティングURL、掲載メタデータ
+
+プライバシーポリシーと利用規約のURLは設定済みです。APNs、AdMob、Apple署名が
+未設定でも、該当機能を安全に無効化した状態でアプリ本体とテストをビルドできます。
 
 ## データと地図のクレジット
 
@@ -351,6 +407,7 @@ TrainLiveMap/
 │   ├── Main/
 │   ├── Map/
 │   ├── Notifications/
+│   ├── Search/
 │   └── Train/
 └── Resources/           App Icon、フォント、MapLibreスタイル
 ```

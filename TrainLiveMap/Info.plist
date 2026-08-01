@@ -32,6 +32,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>現在地ボタンをタップしたときに、地図を現在地付近へ移動するためだけに使用します。位置情報は保存・送信しません。</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>MPLUSRounded1c-Regular.ttf</string>

@@ -70,11 +70,13 @@ final class StubAPIService: TrainAPIService, @unchecked Sendable {
         self.submitCommunityResult = submitCommunityResult
     }
 
-    func fetchTrains() async throws -> TrainsAPIResponse {
+    func fetchTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse {
         try trainsResult.get()
     }
 
-    func fetchServiceStatus() async throws -> ServiceStatusAPIResponse {
+    func fetchServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse {
         try serviceResult.get()
     }
 

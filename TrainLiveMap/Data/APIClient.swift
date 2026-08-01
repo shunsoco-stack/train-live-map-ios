@@ -2,19 +2,27 @@ import Foundation
 
 enum APIClientError: LocalizedError, Equatable, Sendable {
     case invalidURL
+    case invalidLineIDs
+    case invalidReporterID
     case insecureURL
     case invalidResponse
     case httpStatus(Int)
     case serverMessage(statusCode: Int, message: String)
+    case badRequest(message: String)
     case forbidden(message: String)
     case payloadTooLarge(message: String)
     case unsupportedMediaType(message: String)
     case rateLimited(retryAfter: Date, message: String)
+    case serviceUnavailable(retryAfter: Date, message: String)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL:
             "API URLを作成できませんでした"
+        case .invalidLineIDs:
+            "路線指定を確認してください"
+        case .invalidReporterID:
+            "匿名端末IDを確認できないため投稿を送信しません"
         case .insecureURL:
             "HTTPSではないAPI URLへの通信は許可されていません"
         case .invalidResponse:
@@ -23,18 +31,22 @@ enum APIClientError: LocalizedError, Equatable, Sendable {
             "APIがエラーを返しました（HTTP \(statusCode)）"
         case let .serverMessage(_, message):
             message
-        case let .forbidden(message),
+        case let .badRequest(message),
+             let .forbidden(message),
              let .payloadTooLarge(message),
              let .unsupportedMediaType(message),
-             let .rateLimited(_, message):
+             let .rateLimited(_, message),
+             let .serviceUnavailable(_, message):
             message
         }
     }
 }
 
 protocol TrainAPIService: Sendable {
-    func fetchTrains() async throws -> TrainsAPIResponse
-    func fetchServiceStatus() async throws -> ServiceStatusAPIResponse
+    func fetchTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse
+    func fetchServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse
     func fetchRailways() async throws -> RailwaysAPIResponse
     func fetchCommunityReports() async throws -> CommunityReportsAPIResponse
     func submitCommunityReport(
@@ -48,7 +60,7 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let now: @Sendable () -> Date
-    private let communityRetryGate = CommunityReportRetryGate()
+    private let responseRetryGate = HTTPResponseRetryGate()
 
     init(
         baseURL: URL,
@@ -74,12 +86,20 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
         decoder = JSONDecoder.trainLiveMap
     }
 
-    func fetchTrains() async throws -> TrainsAPIResponse {
-        try await fetch(path: "api/trains")
+    func fetchTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse {
+        try await fetch(
+            path: "api/trains",
+            queryItems: try LineFilterQuery.queryItems(for: lineIDs)
+        )
     }
 
-    func fetchServiceStatus() async throws -> ServiceStatusAPIResponse {
-        try await fetch(path: "api/service-status")
+    func fetchServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse {
+        try await fetch(
+            path: "api/service-status",
+            queryItems: try LineFilterQuery.queryItems(for: lineIDs)
+        )
     }
 
     func fetchRailways() async throws -> RailwaysAPIResponse {
@@ -94,42 +114,55 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
         _ vote: CommunityReportVote,
         reporterID: String
     ) async throws -> CommunityReportSubmitResponse {
-        try await communityRetryGate.validate(now: now())
-        do {
-            let response: CommunityReportSubmitResponse = try await fetch(
-                path: "api/community-reports",
-                method: "POST",
-                body: try JSONEncoder.trainLiveMap.encode(vote),
-                headers: [
-                    "Content-Type": "application/json",
-                    "X-Community-Reporter": reporterID
-                ]
-            )
-            return response
-        } catch let error as APIClientError {
-            if case let .rateLimited(retryAfter, message) = error {
-                await communityRetryGate.block(
-                    until: retryAfter,
-                    message: message
-                )
-            }
-            throw error
+        guard CommunityReporterIDValidator.isValid(reporterID) else {
+            throw APIClientError.invalidReporterID
         }
+        return try await fetch(
+            path: "api/community-reports",
+            method: "POST",
+            body: try JSONEncoder.trainLiveMap.encode(vote),
+            headers: [
+                "Content-Type": "application/json",
+                "X-Community-Reporter": reporterID
+            ]
+        )
     }
 
     private func fetch<Response: Decodable>(
         path: String,
         method: String = "GET",
+        queryItems: [URLQueryItem] = [],
         body: Data? = nil,
         headers: [String: String] = [:]
     ) async throws -> Response {
-        let url = baseURL.appendingPathComponent(path)
-        guard AppConfiguration.isSecureHTTPSURL(url) else {
-            throw APIClientError.insecureURL
-        }
         guard !path.isEmpty else {
             throw APIClientError.invalidURL
         }
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent(path),
+            resolvingAgainstBaseURL: false
+        )
+        if !queryItems.isEmpty {
+            components?.queryItems = queryItems
+        }
+        guard let url = components?.url else {
+            throw APIClientError.invalidURL
+        }
+        guard AppConfiguration.isSecureHTTPSURL(url) else {
+            throw APIClientError.insecureURL
+        }
+        let endpointKey = "\(method) \(path)"
+        let requestKey = Self.requestKey(
+            method: method,
+            url: url,
+            body: body
+        )
+        try await responseRetryGate.validate(
+            endpointKey: endpointKey,
+            requestKey: requestKey,
+            now: now()
+        )
+
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
@@ -153,37 +186,76 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
             ))?.error.trimmingCharacters(in: .whitespacesAndNewlines)
 
             switch httpResponse.statusCode {
+            case 400:
+                let error = APIClientError.badRequest(
+                    message: Self.message(
+                        serverMessage,
+                        fallback: "リクエスト内容を確認してください。"
+                    )
+                )
+                await responseRetryGate.blockRequest(
+                    endpointKey: endpointKey,
+                    requestKey: requestKey,
+                    with: error
+                )
+                throw error
             case 403:
                 throw APIClientError.forbidden(
-                    message: serverMessage?.isEmpty == false
-                        ? serverMessage!
-                        : "この投稿は受け付けられませんでした。"
+                    message: Self.message(
+                        serverMessage,
+                        fallback: "この投稿は受け付けられませんでした。"
+                    )
                 )
             case 413:
                 throw APIClientError.payloadTooLarge(
-                    message: serverMessage?.isEmpty == false
-                        ? serverMessage!
-                        : "投稿データが大きすぎます。"
+                    message: Self.message(
+                        serverMessage,
+                        fallback: "投稿データが大きすぎます。"
+                    )
                 )
             case 415:
                 throw APIClientError.unsupportedMediaType(
-                    message: serverMessage?.isEmpty == false
-                        ? serverMessage!
-                        : "投稿はJSON形式で送信する必要があります。"
+                    message: Self.message(
+                        serverMessage,
+                        fallback: "投稿はJSON形式で送信する必要があります。"
+                    )
                 )
             case 429:
-                let retryAfter = RetryAfterParser.date(
-                    from: httpResponse.value(
-                        forHTTPHeaderField: "Retry-After"
-                    ),
-                    now: now()
-                ) ?? now().addingTimeInterval(60)
-                throw APIClientError.rateLimited(
-                    retryAfter: retryAfter,
-                    message: serverMessage?.isEmpty == false
-                        ? serverMessage!
-                        : "投稿が集中しています。しばらく待ってから再投稿してください。"
+                let retryAfter = retryDate(
+                    from: httpResponse,
+                    defaultInterval: 60
                 )
+                let error = APIClientError.rateLimited(
+                    retryAfter: retryAfter,
+                    message: Self.message(
+                        serverMessage,
+                        fallback: "アクセスが集中しています。しばらく待ってから再試行してください。"
+                    )
+                )
+                await responseRetryGate.blockEndpoint(
+                    endpointKey,
+                    until: retryAfter,
+                    with: error
+                )
+                throw error
+            case 503:
+                let retryAfter = retryDate(
+                    from: httpResponse,
+                    defaultInterval: 10
+                )
+                let error = APIClientError.serviceUnavailable(
+                    retryAfter: retryAfter,
+                    message: Self.message(
+                        serverMessage,
+                        fallback: "現在APIを利用できません。しばらく待ってから再試行してください。"
+                    )
+                )
+                await responseRetryGate.blockEndpoint(
+                    endpointKey,
+                    until: retryAfter,
+                    with: error
+                )
+                throw error
             default:
                 break
             }
@@ -197,6 +269,36 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
             throw APIClientError.httpStatus(httpResponse.statusCode)
         }
         return try decoder.decode(Response.self, from: data)
+    }
+
+    private func retryDate(
+        from response: HTTPURLResponse,
+        defaultInterval: TimeInterval
+    ) -> Date {
+        let currentDate = now()
+        return RetryAfterParser.date(
+            from: response.value(forHTTPHeaderField: "Retry-After"),
+            now: currentDate
+        ) ?? currentDate.addingTimeInterval(defaultInterval)
+    }
+
+    private static func message(
+        _ serverMessage: String?,
+        fallback: String
+    ) -> String {
+        guard let serverMessage, !serverMessage.isEmpty else {
+            return fallback
+        }
+        return serverMessage
+    }
+
+    private static func requestKey(
+        method: String,
+        url: URL,
+        body: Data?
+    ) -> String {
+        let encodedBody = body?.base64EncodedString() ?? ""
+        return "\(method) \(url.absoluteString) \(encodedBody)"
     }
 }
 
@@ -232,28 +334,93 @@ enum RetryAfterParser {
     }
 }
 
-private actor CommunityReportRetryGate {
-    private var retryAfter: Date?
-    private var message = ""
+enum LineFilterQuery {
+    private static let lineIDPattern = #"^[a-z0-9-]{1,64}$"#
+    private static let maximumLineCount = 44
+    private static let maximumQueryLength = 1_024
 
-    func validate(now: Date) throws {
-        guard let retryAfter else {
+    static func queryItems(for lineIDs: Set<String>) throws -> [URLQueryItem] {
+        let sortedIDs = lineIDs.sorted()
+        let value = sortedIDs.joined(separator: ",")
+        guard sortedIDs.count <= maximumLineCount,
+              value.count <= maximumQueryLength,
+              sortedIDs.allSatisfy(isValidLineID) else {
+            throw APIClientError.invalidLineIDs
+        }
+        return [URLQueryItem(name: "lines", value: value)]
+    }
+
+    private static func isValidLineID(_ value: String) -> Bool {
+        value.range(of: lineIDPattern, options: .regularExpression) != nil
+    }
+}
+
+enum CommunityReporterIDValidator {
+    private static let pattern = #"^[A-Za-z0-9_-]{12,100}$"#
+
+    static func isValid(_ value: String) -> Bool {
+        value.range(of: pattern, options: .regularExpression) != nil
+    }
+}
+
+private actor HTTPResponseRetryGate {
+    private struct RequestBlock {
+        let requestKey: String
+        let error: APIClientError
+    }
+
+    private struct TimedBlock {
+        let retryAfter: Date
+        let error: APIClientError
+    }
+
+    private var blockedRequests: [String: RequestBlock] = [:]
+    private var blockedEndpoints: [String: TimedBlock] = [:]
+
+    func validate(
+        endpointKey: String,
+        requestKey: String,
+        now: Date
+    ) throws {
+        if let block = blockedRequests[endpointKey] {
+            if block.requestKey == requestKey {
+                throw block.error
+            }
+            // A changed selected-line query is an explicit correction. Clear
+            // the previous 400 block so returning to that set later can be
+            // checked against a refreshed server catalogue.
+            blockedRequests.removeValue(forKey: endpointKey)
+        }
+        guard let block = blockedEndpoints[endpointKey] else {
             return
         }
-        guard retryAfter > now else {
-            self.retryAfter = nil
-            message = ""
+        guard block.retryAfter > now else {
+            blockedEndpoints.removeValue(forKey: endpointKey)
             return
         }
-        throw APIClientError.rateLimited(
-            retryAfter: retryAfter,
-            message: message
+        throw block.error
+    }
+
+    func blockRequest(
+        endpointKey: String,
+        requestKey: String,
+        with error: APIClientError
+    ) {
+        blockedRequests[endpointKey] = RequestBlock(
+            requestKey: requestKey,
+            error: error
         )
     }
 
-    func block(until retryAfter: Date, message: String) {
-        self.retryAfter = retryAfter
-        self.message = message
+    func blockEndpoint(
+        _ endpointKey: String,
+        until retryAfter: Date,
+        with error: APIClientError
+    ) {
+        blockedEndpoints[endpointKey] = TimedBlock(
+            retryAfter: retryAfter,
+            error: error
+        )
     }
 }
 

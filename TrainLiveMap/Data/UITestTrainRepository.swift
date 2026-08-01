@@ -12,32 +12,33 @@ actor UITestTrainRepository: TrainRepository {
         )
     }
 
-    func refreshTrains() async throws -> TrainsAPIResponse {
-        TrainsAPIResponse(
-            trains: [
-                train(
-                    id: "ui-yamanote",
-                    lineID: "yamanote",
-                    lineName: "山手線",
-                    color: "#9acd32",
-                    direction: .inbound,
-                    destination: "東京",
-                    status: .running,
-                    delay: 0,
-                    longitude: 139.767
-                ),
-                train(
-                    id: "ui-tokaido",
-                    lineID: "tokaido",
-                    lineName: "東海道線",
-                    color: "#f68b1e",
-                    direction: .outbound,
-                    destination: "横浜",
-                    status: .delayed,
-                    delay: 3,
-                    longitude: 139.72
-                )
-            ],
+    func refreshTrains(lineIDs: Set<String>) async throws -> TrainsAPIResponse {
+        let trains = [
+            train(
+                id: "ui-yamanote",
+                lineID: "yamanote",
+                lineName: "山手線",
+                color: "#9acd32",
+                direction: .inbound,
+                destination: "東京",
+                status: .running,
+                delay: 0,
+                longitude: 139.767
+            ),
+            train(
+                id: "ui-tokaido",
+                lineID: "tokaido",
+                lineName: "東海道線",
+                color: "#f68b1e",
+                direction: .outbound,
+                destination: "横浜",
+                status: .delayed,
+                delay: 3,
+                longitude: 139.72
+            )
+        ].filter { lineIDs.contains($0.lineId) }
+        return TrainsAPIResponse(
+            trains: trains,
             generatedAt: now,
             dataUpdatedAt: now,
             isMock: false,
@@ -47,7 +48,9 @@ actor UITestTrainRepository: TrainRepository {
         )
     }
 
-    func refreshServiceStatus() async throws -> ServiceStatusAPIResponse {
+    func refreshServiceStatus(
+        lineIDs: Set<String>
+    ) async throws -> ServiceStatusAPIResponse {
         let statuses = [
             ServiceStatus(
                 lineId: "tokaido",
@@ -66,9 +69,12 @@ actor UITestTrainRepository: TrainRepository {
                 dataAccuracy: .actual
             )
         ]
+        let filteredStatuses = statuses.filter {
+            lineIDs.contains($0.lineId)
+        }
         return ServiceStatusAPIResponse(
-            serviceStatus: statuses[0],
-            serviceStatuses: statuses,
+            serviceStatus: filteredStatuses.first ?? statuses[0],
+            serviceStatuses: filteredStatuses,
             isMock: false,
             source: .odpt,
             fallback: false,
@@ -167,7 +173,7 @@ actor UITestTrainRepository: TrainRepository {
             lineId: lineID,
             lineName: lineName,
             lineColor: color,
-            trainNumber: nil,
+            trainNumber: id == "ui-yamanote" ? "123G" : "456M",
             direction: direction,
             destination: destination,
             trainType: .local,

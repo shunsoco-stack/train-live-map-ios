@@ -55,6 +55,7 @@ git add project.yml TrainLiveMap.xcodeproj
 - Reporter IDストア: ランダム端末IDのKeychain保存と旧UserDefaults値の安全な移行
 - `RailwaySelectionLogic`: APIカテゴリごとの初期1路線、選択中だけの運行情報
 - `ServiceStatusLogic`: ODPT文面優先、2分鮮度、列車遅延による補完と重大判定
+- `TrainNumberSearchLogic`: 表示中の最新列車だけを対象にした番号前方一致検索
 - `CommunityReportLogic`: 30分集計、中央値、重大度tie-break、通知閾値判定
 - `TrainMotionEngine`: routeSegment、線路投影、区間内補間、Reduce Motion
 - `MapLibreTrainMap`: 路線casing、ラベル、古いlayer削除、自動viewport
@@ -83,9 +84,22 @@ ODPTへ直接アクセスするコードを追加しないでください。`ODP
 Keychainのランダム値を使用し、ヘッダーや本文をログへ出力しません。Keychain保存を
 確認できない場合は投稿をfail-closedで送信しません。
 
-Webバックエンドの`403`、`413`、`415`、`429`は個別の非再試行エラーとして扱います。
-`429`だけは`Retry-After`（delta-secondsまたはHTTP-date）を保存し、その期限までは
-UIとAPIクライアントの両方で再送を禁止します。期限前の自動再試行は禁止です。
+`GET /api/trains`と`GET /api/service-status`には選択中の
+`/api/railways.options[].id`を昇順・重複なしで連結し、
+`?lines=tokaido,yamanote`として渡します。0路線時は要求を送りません。IDは
+`^[a-z0-9-]{1,64}$`、最大44路線、値全体1,024文字以内です。
+`serviceStatuses`が存在するときは空配列も正式な結果であり、legacyの単数
+`serviceStatus`へ戻してはいけません。
+
+起動時は、保存済み`/api/railways`キャッシュをUI復元に使いつつ、列車・運行情報の
+選択路線ポーリングを開始する前にカタログを1回再取得します。成功時はサーバーの最新
+`options`へ選択を整合し、失敗時はキャッシュを表示用フォールバックとして維持します。
+キャッシュもない場合は選択路線ポーリングを開始せず、単一の空状態から手動再試行できます。
+
+Webバックエンドの`400`、`403`、`413`、`415`、`429`、`503`は個別に扱います。
+路線APIの`400`は選択IDが変わるまで再送せず、`429`は`Retry-After`
+（delta-secondsまたはHTTP-date）まで、`503`は`Retry-After`または次の通常周期まで
+再送しません。処理中の同一要求、連打、再帰的な自動リトライは禁止です。
 
 `ODPT_ACCESS_TOKEN`、Redis URL／token、`VAPID_PRIVATE_KEY`、
 `REPORTER_HASH_SALT`、legacy fallbackの`COMMUNITY_REPORT_HMAC_SECRET`は
@@ -133,10 +147,10 @@ Reporter／接続元単位の回数制限が実装されています。エラー
 
 | データ | 間隔 |
 | --- | --- |
-| 列車 | 7秒 |
-| 公式運行情報 | 30秒 |
+| 列車 | 10秒 |
+| 公式運行情報 | 10秒 |
 | 路線 | 起動時 |
-| みんなの運行情報 | 20秒 |
+| みんなの運行情報 | 10秒 |
 
 バックグラウンドでは全ポーリングと補間を止め、復帰時に即時更新します。
 
@@ -150,8 +164,12 @@ TrainLiveMap/Cache/
 └── community-reports.json
 ```
 
-通信失敗時はキャッシュを消さず、古いデータの表示、更新時刻、エラー、再試行を
-維持します。キャッシュ保存失敗は有効なネットワークデータを無効化しません。
+通信失敗時はキャッシュを消さず、更新時刻、エラー、再試行を維持します。オンライン中の
+一時的なAPI失敗では最後の成功位置を「古いデータ」と明示して、地図、列車番号検索、
+詳細に保持します。オフライン検知時だけ過去座標を現在位置として扱わず列車マーカーと
+検索／詳細を即座に隠し、復帰後の成功レスポンスで再表示します。
+停止時間表示だけを1秒ごとに局所更新し、画面全体は1秒周期で更新しません。
+キャッシュ保存失敗は有効なネットワークデータを無効化しません。
 
 ## UserDefaults
 
@@ -165,7 +183,7 @@ TrainLiveMap/Cache/
 初回だけAPIカテゴリごとの利用可能な先頭1路線を選び、以後は保存値を復元します。
 APIから消えたIDは`reconcile`で表示／お気に入り／通知対象から除外します。
 
-Reporter IDはランダムUUID由来で、Keychainへ保存します。旧版の
+Reporter IDは`^[A-Za-z0-9_-]{12,100}$`に適合するランダムUUID由来で、Keychainへ保存します。旧版の
 `train-live-map.community-reporter-id`がUserDefaultsにあれば、形式を検証して
 Keychainへ一度だけ移行し、旧値を削除します。氏名、メール、位置情報などの個人情報は
 保存しません。
@@ -175,6 +193,18 @@ Keychainへ一度だけ移行し、旧値を削除します。氏名、メール
 表示位置はGPS現在地と断定しません。画面には
 `ODPTライブ（位置は駅間推定）`を表示し、詳細で`actual`／`estimated`／`mock`を
 区別します。
+
+列車番号検索は表示中かつ最新の列車だけを対象に、trim済み・大文字小文字を無視した
+前方一致で最大5件を返します。選択時は状態フィルターを解除して対象markerを表示し、
+地図を最低zoom 12以上へ移動して詳細Sheetを開きます。凡例では列車状態、上り／下り、
+実データ／推定／モックと、GPSの正確な位置ではないことを説明します。0件の状態
+フィルターは無効化し、路線0件・列車0件・絞り込み0件は同じ単一empty-state面へ出します。
+
+現在地ボタンはユーザーがタップした時だけ`When In Use`権限を要求し、Core Locationの
+one-shot結果をMapLibreのカメラ移動にだけ使用します。座標は永続化せず、APIや通知登録、
+利用者投稿へ送信しません。`showsUserLocation`は無効のままで継続追跡せず、バックグラウンド
+遷移時は取得中リクエストを通知なしで中止します。Reduce Motion時はカメラ移動を
+アニメーションしません。
 
 位置更新の優先順位:
 
@@ -273,21 +303,26 @@ SDKもバナー領域も無効です。
 
 ## 検証結果
 
-最終コミット前のSimulator検証:
+2026-08-01のフェーズ3〜6反映後に実測した結果:
 
-- Debug Simulator署名付きbuild-for-testing: 成功
+- 実行先: iPhone 17 Pro Simulator／iOS 26.4
+- Unit Test: 86件中86件成功、失敗0
+- UI Test: 4件中4件成功、失敗0
 - Release Simulator build: 成功
-- Release実機向け署名なしコンパイル: 成功
-- Unit Test: 59件成功、失敗0（セキュリティ17件、運行情報補完11件を含む）
-- 標準iPhone UI Test: 3件成功、失敗0
-- iPhone SE相当: 主要UI／VoiceOverスモーク成功、目視確認済み
-- iPhone Pro Max相当: 最大Dynamic Type／ダーク／通知UI成功
-- iPad Pro 11-inch相当: 主要UI／VoiceOverスモーク成功、目視確認済み
-- 本番APIモードのSimulator起動: 成功、ODPT列車と7カテゴリ初期選択を描画
-- App Icon: 全宣言サイズ一致、アルファなし
-- M PLUS Rounded: 3ウェイトをbundleから正常読込
 
-Unit Testの範囲:
+次は過去フェーズで記録された確認であり、フェーズ3〜6反映後の現コードでは今回
+再実行していません。App Store提出判定には上記の最新実測と、提出前の実機／端末別
+再検証を使用してください。
+
+最新コードで追加実行したiPhone SE Simulatorは、CoreSimulatorサービスのホスト側
+IPCエラーによりアプリ起動前に終了しました。この試行は成功件数へ含めていません。
+
+- iPhone SE相当、Pro Max相当、iPad Pro 11-inch相当のレイアウト／VoiceOver確認
+- 本番APIモードのSimulator起動とODPTデータ描画
+- Release実機向け署名なしコンパイル
+- App Iconの全宣言サイズ／アルファと、M PLUS Rounded 3ウェイトの読込確認
+
+自動テストの範囲:
 
 - 4 APIレスポンスのCodable
 - actual／estimated／mock、fallback
@@ -297,8 +332,30 @@ Unit Testの範囲:
 - 全状態フィルター
 - 上下方向、顔、涙、遅延吹き出し、VoiceOver文言
 - 補間、0〜1クランプ、線路投影、停止、Reduce Motion
-- API失敗時のキャッシュ維持
+- API失敗時の古いデータ明示とキャッシュ表示維持
+- 過去の列車位置を地図・検索へ出さないオフライン処理
+- 選択路線query、400／429／503再送抑止、Reporter ID形式
+- 列車／運行情報のendpoint別再試行とCommunity GET／POST重複抑止
+- 初回現在地権限ダイアログ中のscene inactivityとバックグラウンド停止
+- 列車番号前方一致検索、0件フィルター、凡例、単一empty state
 - 30分投稿集計、中央値、通知閾値
+
+## 未設定の外部ID／提出前に必要な外部設定
+
+| 項目 | 現在の状態 |
+| --- | --- |
+| Apple Developer Team／配布署名 | 未設定 |
+| APNs Provider Keyまたは証明書／Team ID／Key ID | 未設定 |
+| ネイティブAPNsバックエンド | 未提供 |
+| `APNS_REGISTRATION_URL` | 未設定 |
+| Release用`ADMOB_APP_ID` | 未設定 |
+| Release用`ADMOB_BANNER_UNIT_ID` | 未設定 |
+| UMPの地域別メッセージ | AdMob管理画面で公開前設定が必要 |
+| App Store Connectのサポート／マーケティングURL | 提出前に設定が必要 |
+
+プライバシーポリシーは`https://train-live-map.vercel.app/privacy`、利用規約は
+`https://train-live-map.vercel.app/terms`へ設定済みです。上表の秘密情報や本物の
+外部IDをGitへ追加せず、Apple、Vercel、AdMobの安全な設定から注入してください。
 
 ## 既知の制約
 
@@ -308,7 +365,8 @@ Unit Testの範囲:
 - 一部の選択可能路線はAPIに全線形状がありません。
 - Webバックエンド、ODPT、CARTO、OpenStreetMap、Google広告の可用性に依存します。
 - APNs端末登録／配信バックエンドは未提供です。
-- バックグラウンド更新と位置情報権限は意図的に実装していません。
+- バックグラウンド更新は意図的に実装していません。位置情報は現在地ボタン操作時の
+  `When In Use` one-shotだけです。
 - Release用AdMob ID、Apple署名、APNs外部設定は未設定です。
 
 ## App Store提出前チェックリスト
@@ -333,7 +391,7 @@ Unit Testの範囲:
 ### App Store Connect
 
 - 掲載名、サブタイトル、説明、キーワード、カテゴリを確定
-- サポートURL、マーケティングURL、Train Live Map用プライバシーポリシーURLを用意
+- サポートURLとマーケティングURLを設定し、既存のプライバシーポリシー／利用規約URLを確認
 - iPhone各サイズとiPadのスクリーンショットを作成
 - App Privacy回答でAPI投稿、匿名ID、広告SDKの取扱いを正確に申告
 - 年齢区分、輸出コンプライアンス、広告識別子の回答
@@ -362,7 +420,7 @@ xcodebuild -project TrainLiveMap.xcodeproj -scheme TrainLiveMap \
 
 xcodebuild -project TrainLiveMap.xcodeproj -scheme TrainLiveMap \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' test
 ```
 
 macOSのファイル調停でプロジェクト読込が遅い環境では、検証専用コピーまたは
