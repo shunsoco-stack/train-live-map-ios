@@ -308,14 +308,16 @@ SDKもバナー領域も無効です。
 - 実行先: iPhone 17 Pro Simulator／iOS 26.4
 - Unit Test: 86件中86件成功、失敗0
 - UI Test: 4件中4件成功、失敗0
+- iPhone SE（第3世代）相当 UIスモーク: 1件中1件成功、失敗0
 - Release Simulator build: 成功
 
 次は過去フェーズで記録された確認であり、フェーズ3〜6反映後の現コードでは今回
 再実行していません。App Store提出判定には上記の最新実測と、提出前の実機／端末別
 再検証を使用してください。
 
-最新コードで追加実行したiPhone SE Simulatorは、CoreSimulatorサービスのホスト側
-IPCエラーによりアプリ起動前に終了しました。この試行は成功件数へ含めていません。
+最新コードではiPhone SE（第3世代）相当の主要操作／アクセシビリティUIスモークも
+成功しました。Pro Max相当とiPadの追加試行はCoreSimulatorServiceのホスト側接続断で
+アプリ起動前に終了したため、成功件数へ含めていません。
 
 - iPhone SE相当、Pro Max相当、iPad Pro 11-inch相当のレイアウト／VoiceOver確認
 - 本番APIモードのSimulator起動とODPTデータ描画
