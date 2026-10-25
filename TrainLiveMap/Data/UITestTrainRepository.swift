@@ -41,10 +41,10 @@ actor UITestTrainRepository: TrainRepository {
             trains: trains,
             generatedAt: now,
             dataUpdatedAt: now,
-            isMock: false,
-            source: .odpt,
+            isMock: true,
+            source: .mock,
             fallback: false,
-            notice: nil
+            notice: "モックデータ（UIテスト）"
         )
     }
 
@@ -75,10 +75,10 @@ actor UITestTrainRepository: TrainRepository {
         return ServiceStatusAPIResponse(
             serviceStatus: filteredStatuses.first ?? statuses[0],
             serviceStatuses: filteredStatuses,
-            isMock: false,
-            source: .odpt,
+            isMock: true,
+            source: .mock,
             fallback: false,
-            notice: nil
+            notice: "モックデータ（UIテスト）"
         )
     }
 

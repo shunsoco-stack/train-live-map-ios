@@ -1,0 +1,38 @@
+アプリ名: Train Live Map
+サブタイトル: JR東日本・関東版（非公式）
+バージョン: 1.1.0
+ビルド: 2
+カテゴリ: ナビゲーション（候補）、旅行（副カテゴリ候補）
+価格: 無料（課金・広告なし）
+キーワード: 電車,列車,路線,運行情報,遅延,駅,鉄道,関東,山手線,埼京線,地図,通勤,通学,JR東日本
+サポートURL: https://train-live-map.vercel.app/support
+プライバシーポリシーURL: https://train-live-map.vercel.app/privacy
+マーケティングURL: https://train-live-map.vercel.app/
+問い合わせ先: train-live-map-support@gmail.com
+著作権: 2026 Shunsuke Kinjo（権利者表記を提出前に確認）
+
+説明文:
+関東の電車を、見やすい地図で。
+Train Live Mapは、JR東日本の関東エリアの列車位置と運行情報を確認できる非公式アプリです。
+
+■ 地図で列車を確認
+路線カラーの電車アイコンで、列車の動きや遅れを確認できます。駅名や路線名も地図上に表示。列車をタップすると、行き先、方向、遅延、更新時刻を確認できます。
+
+■ いつもの路線をすぐに表示
+路線名検索、エリア別の路線選択、お気に入り登録に対応。表示したい路線だけを選び、次回の起動時にも設定を引き継ぎます。
+
+■ 公式情報とみんなの情報を区別
+選択した路線の公式運行情報と利用者の投稿を、分けて確認できます。通信できない場合や古い情報を表示している場合も明示します。
+
+■ iPhone・iPadに対応
+文字サイズ変更、ダークモード、VoiceOverに対応。現在地は、現在地ボタンを押して許可した場合にだけ使用します。
+
+【ご利用にあたって】
+本アプリは「JR東日本・関東版（非公式）」です。JR東日本および公共交通オープンデータ協議会の公式アプリではありません。
+列車位置は駅間情報と路線形状に基づく推定を含み、GPSによる正確な現在位置ではありません。更新の遅れや実際とのずれが生じる場合があります。運行情報は鉄道事業者の公式案内もご確認ください。
+列車位置情報を提供していない路線・区間があります。利用者投稿は公式な確定情報ではありません。開発用データが表示される場合は「モックデータ」と明示します。
+データ提供: 公共交通オープンデータセンター（ODPT）、JR東日本アイステイションズ。
+地図: OpenFreeMap、© OpenMapTiles、© OpenStreetMap contributors。
+
+審査メモ:
+No login or review account is required. This is a native SwiftUI application with MapLibre Native, not a web view wrapper. It is an unofficial JR East Kanto train information app. Train positions are estimates based on station-to-station data, not GPS. The app never contains an ODPT access token; all transport data is obtained from our HTTPS server. Community reports are structured votes (no free text or attachments), rate-limited and displayed separately from official information. Location permission is requested only after tapping the location button and is used only on device to center the map. No ads, IDFA or tracking SDK is included. Notifications are optional and permission is requested only after the user reads the explanation and taps to enable. Native push must be deployed and verified before claiming it as an available review feature.

@@ -29,11 +29,9 @@ struct MapLibreTrainMap: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> MLNMapView {
-        let styleURL = Bundle.main.url(
-            forResource: "MapStyle",
-            withExtension: "json"
-        )
+        let styleURL = URL(string: "https://tiles.openfreemap.org/styles/positron")!
         let mapView = MLNMapView(frame: .zero, styleURL: styleURL)
+        mapView.backgroundColor = UIColor(hex: "#E8EAED")
         mapView.delegate = context.coordinator
         // Current location is used only for one-shot camera movement after a tap.
         // Keeping this off avoids continuous tracking and location persistence.
@@ -94,6 +92,7 @@ struct MapLibreTrainMap: UIViewRepresentable {
         private var locationRequestInFlight = false
         private var oneShotLocationRequested = false
         private var locationManager: CLLocationManager?
+        private var usingFallbackStyle = false
         private var locationTimeoutTask: Task<Void, Never>?
 
         init(
@@ -113,6 +112,7 @@ struct MapLibreTrainMap: UIViewRepresentable {
                 target: self,
                 selector: #selector(tick)
             )
+            displayLink.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 30, preferred: 20)
             displayLink.add(to: .main, forMode: .common)
             displayLink.isPaused = true
             self.displayLink = displayLink
@@ -210,6 +210,12 @@ struct MapLibreTrainMap: UIViewRepresentable {
             focusOnSelectedTrain(on: mapView)
         }
 
+        func mapViewDidFailLoadingMap(_ mapView: MLNMapView, withError error: Error) {
+            guard !usingFallbackStyle else { return }
+            usingFallbackStyle = true
+            mapView.styleURL = Bundle.main.url(forResource: "MapStyle", withExtension: "json")
+        }
+
         func mapView(
             _ mapView: MLNMapView,
             viewFor annotation: MLNAnnotation
@@ -231,6 +237,14 @@ struct MapLibreTrainMap: UIViewRepresentable {
                 )
             }
             annotationView.annotation = annotation
+            let peers = displayedTrains.filter {
+                abs($0.latitude - train.latitude) < 0.0002 && abs($0.longitude - train.longitude) < 0.0002
+            }.sorted { $0.id < $1.id }
+            let index = peers.firstIndex(where: { $0.id == train.id }) ?? 0
+            annotationView.centerOffset = CGVector(
+                dx: peers.count > 1 ? (CGFloat(index % 5) - CGFloat(min(peers.count, 5) - 1) / 2) * 46 : 0,
+                dy: -36 - CGFloat(index / 5) * 50
+            )
             annotationView.configure(
                 with: train,
                 isSelected: train.id == selectedTrainID
@@ -359,8 +373,51 @@ struct MapLibreTrainMap: UIViewRepresentable {
                 routeImageIdentifiers.append(imageIdentifier)
             }
 
+            renderStations(on: style)
             if viewportNeedsUpdate {
                 fitViewportToDisplayedRailways(on: mapView)
+            }
+        }
+
+        private func renderStations(on style: MLNStyle) {
+            var seen = Set<String>()
+            let stations = displayedRailways.flatMap { $0.stations ?? [] }
+                .filter { $0.position.isFinite && seen.insert($0.id).inserted }
+            let features: [MLNPointFeature] = stations.enumerated().map { index, station in
+                let imageID = "station-image-\(index)"
+                style.setImage(Self.stationImage(name: station.name), forName: imageID)
+                routeImageIdentifiers.append(imageID)
+                let feature = MLNPointFeature()
+                feature.coordinate = CLLocationCoordinate2D(latitude: station.position.latitude, longitude: station.position.longitude)
+                feature.attributes = ["image": imageID]
+                return feature
+            }
+            guard !features.isEmpty else { return }
+            let source = MLNShapeSource(identifier: "selected-stations", features: features, options: nil)
+            style.addSource(source)
+            let layer = MLNSymbolStyleLayer(identifier: "selected-station-labels", source: source)
+            layer.iconImageName = NSExpression(forKeyPath: "image")
+            layer.iconAllowsOverlap = NSExpression(forConstantValue: false)
+            layer.minimumZoomLevel = 10
+            style.addLayer(layer)
+            routeSourceIdentifiers.append(source.identifier)
+            routeLayerIdentifiers.append(layer.identifier)
+        }
+
+        private static func stationImage(name: String) -> UIImage {
+            let font = UIFont.systemFont(ofSize: 12, weight: .bold)
+            let size = (name as NSString).size(withAttributes: [.font: font])
+            return UIGraphicsImageRenderer(size: CGSize(width: max(44, size.width + 10), height: 47)).image { _ in
+                let width = max(44, size.width + 10)
+                UIColor(hex: "#FFF8E9").setFill()
+                UIColor(hex: "#493020").setStroke()
+                let house = UIBezierPath(roundedRect: CGRect(x: width / 2 - 12, y: 9, width: 24, height: 18), cornerRadius: 3)
+                house.lineWidth = 2; house.fill(); house.stroke()
+                let roof = UIBezierPath(); roof.move(to: CGPoint(x: width / 2 - 16, y: 10)); roof.addLine(to: CGPoint(x: width / 2, y: 1)); roof.addLine(to: CGPoint(x: width / 2 + 16, y: 10)); roof.close(); roof.fill(); roof.stroke()
+                UIColor(hex: "#83B8C0").setFill()
+                UIBezierPath(roundedRect: CGRect(x: width / 2 - 8, y: 14, width: 16, height: 8), cornerRadius: 2).fill()
+                UIColor.white.setFill(); UIBezierPath(roundedRect: CGRect(x: 0, y: 29, width: width, height: 18), cornerRadius: 4).fill()
+                (name as NSString).draw(at: CGPoint(x: (width - size.width) / 2, y: 30), withAttributes: [.font: font, .foregroundColor: UIColor(hex: "#493020")])
             }
         }
 

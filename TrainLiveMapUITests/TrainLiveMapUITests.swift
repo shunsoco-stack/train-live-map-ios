@@ -119,7 +119,7 @@ final class TrainLiveMapUITests: XCTestCase {
             notificationNavigationBar.waitForExistence(timeout: 8)
         )
         XCTAssertTrue(
-            app.staticTexts["運転見合わせの可能性をお知らせ"].exists
+            app.staticTexts["お気に入り路線の変化をお知らせ"].exists
         )
         XCTAssertTrue(
             app.staticTexts
@@ -190,6 +190,30 @@ final class TrainLiveMapUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["列車の状態"].exists)
         XCTAssertTrue(app.staticTexts["進行方向"].exists)
         XCTAssertTrue(app.staticTexts["位置推定"].exists)
+    }
+
+    func testFavoritesAndOfficialInformation() {
+        let app = makeApp()
+        app.launch()
+        XCTAssertTrue(app.buttons["service-status-button"].waitForExistence(timeout: 15))
+        app.buttons["service-status-button"].tap()
+        XCTAssertTrue(app.navigationBars["運行情報"].waitForExistence(timeout: 8))
+        app.buttons["閉じる"].tap()
+        app.buttons["railway-filter-button"].tap()
+        let favorite = app.buttons["山手線をお気に入りに登録"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 8))
+        favorite.tap()
+        XCTAssertTrue(app.buttons["山手線をお気に入りから解除"].exists)
+        app.switches["favorites-only-toggle"].tap()
+        XCTAssertFalse(app.buttons["東海道線をお気に入りに登録"].exists)
+    }
+
+    func testOfflineDoesNotShowLiveTrainPositions() {
+        let app = makeApp()
+        app.launchArguments += ["-UITestOffline"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'オフライン'")).firstMatch.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH '東海道線、下り'")).firstMatch.exists)
     }
 
     private func makeApp() -> XCUIApplication {

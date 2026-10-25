@@ -20,6 +20,13 @@ final class UserPreferences: ObservableObject {
     @Published private(set) var favoriteLineIDs: Set<String>
     @Published private(set) var notificationLineIDs: Set<String>
     @Published private(set) var favoritesOnly: Bool
+    @Published var notificationSettings: NotificationPreferences {
+        didSet {
+            if let data = try? JSONEncoder().encode(notificationSettings) {
+                defaults.set(data, forKey: "train-live-map.notification-settings")
+            }
+        }
+    }
     let reporterID: String
     let reporterIDIsSecurelyStored: Bool
 
@@ -32,6 +39,9 @@ final class UserPreferences: ObservableObject {
         secureStore: any SecureStringStoring = KeychainSecureStringStore()
     ) {
         self.defaults = defaults
+        notificationSettings = defaults.data(forKey: "train-live-map.notification-settings")
+            .flatMap { try? JSONDecoder().decode(NotificationPreferences.self, from: $0) }
+            ?? NotificationPreferences()
         visibleLineIDs = Set(defaults.stringArray(forKey: Key.visibleLineIDs) ?? [])
         favoriteLineIDs = Set(defaults.stringArray(forKey: Key.favoriteLineIDs) ?? [])
         notificationLineIDs = Set(

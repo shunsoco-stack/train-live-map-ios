@@ -13,7 +13,7 @@ JR東日本・関東版（非公式）
 - Bundle ID: `com.shunsoco.trainlivemap`
 - 対応OS: iOS 17以降
 - 問い合わせ: `train-live-map-support@gmail.com`
-- App Store掲載名候補: `Train Live Map - JR東日本 関東版`
+- App Store掲載名: `Train Live Map`
 
 JR東日本の公式アプリではありません。WebViewは使用しておらず、既存Web版
 [`shunsoco-stack/train-live-map`](https://github.com/shunsoco-stack/train-live-map)
@@ -41,7 +41,9 @@ JR東日本の公式アプリではありません。WebViewは使用してお�
 - バックグラウンド時のポーリング・アニメーション停止、復帰時の即時更新
 - M PLUS Rounded 1c、ライト／ダーク、Dynamic Type、Reduce Motion、
   Reduce Transparency、iPhone／iPad対応
-- UMP同意取得後にだけ初期化するAdMobアダプティブバナー
+- OpenFreeMap Positron、駅イラスト、駅名と常時表示の地図帰属
+- 公式運行情報の更新時刻・提供元・取得失敗を確認する専用シート
+- 公式な全線見合わせを列車の表示状態へ反映（部分見合わせで全列車を停止扱いにしない）
 
 地図の列車位置はGPS現在地ではありません。ODPTの駅間情報などから求める場合が
 あるため、アプリには常に「ODPTライブ（位置は駅間推定）」と表示します。
@@ -52,8 +54,6 @@ JR東日本の公式アプリではありません。WebViewは使用してお�
 - MVVM + Repository
 - async/await + URLSession + Codable
 - MapLibre Native for iOS 6.28.0
-- Google Mobile Ads SDK 13.7.0
-- Google User Messaging Platform 3.1.0
 - Swift Package Manager
 - UserDefaults + Application Support JSONキャッシュ
 - XCTest / XCUITest
@@ -79,7 +79,7 @@ UIから通信、キャッシュ、集計ロジックを分離しています。
 
 必要環境:
 
-- Xcode 16以降
+- Xcode 26.4（今回の検証環境）、iOS SDK 26.4
 - XcodeGen
 - iOS 17以降のSimulator、またはiPhone／iPad
 
@@ -95,15 +95,15 @@ Xcodeで`TrainLiveMap`スキームを選んで実行してください。`projec
 
 ## 環境設定
 
-既定値は`Config/Base.xcconfig`、Debug／Release差分は各xcconfigにあります。
+既定値は`Config/Base.xcconfig`、Development／Staging／Production差分は各xcconfigにあります。
+DebugはDevelopment、ReleaseはProductionを利用します。Staging専用URLはまだ提供されておらず、現状は本番の読み取りAPIを使います。専用環境の用意後にHTTPS URLを上書きしてください。
 
 | 設定 | 既定値／挙動 |
 | --- | --- |
 | `API_BASE_URL` | `https://train-live-map.vercel.app` |
 | `APNS_REGISTRATION_URL` | 未設定 |
-| `ADMOB_APP_ID` | DebugはGoogle公式テストID、Releaseは未設定 |
-| `ADMOB_BANNER_UNIT_ID` | DebugはGoogle公式テストID、Releaseは未設定 |
 | `MARKETING_VERSION` | `1.1.0` |
+| `CURRENT_PROJECT_VERSION` | `2` |
 
 Release用の外部IDはGit管理外のファイルから注入します。
 
@@ -235,11 +235,11 @@ APIの`coverageNote`を表示します。
 
 ## みんなの運行情報
 
-- 投稿種別: 平常、遅延、運転見合わせ
+- 投稿種別: 平常、遅延、大幅な遅れ、運転見合わせ、運転再開
 - 遅延分数: 1〜120分、集計値は中央値
 - 集計窓: 直近30分
 - 同数: 重大度の高い状態を優先
-- Reporter ID: ランダムUUID由来の値をKeychainへ保存し、個人情報は収集しない
+- Reporter ID: ランダムUUID由来の値をKeychainへ保存し、投稿時に送信。氏名・メールの入力は不要
 - 連続投稿: API返却の`cooldownSeconds`を端末でも適用
 - 表示: 「みんなの情報（非公式）」と明記し、公式運行情報と分離
 
@@ -253,45 +253,17 @@ POST本文は`lineId`、`status`、必要時の`delayMinutes`です。JSON本文
 お気に入りと通知対象は別々に保存し、通知タップ時は`userInfo.lineId`の路線だけを
 表示します。
 
-iOS側は`APNS_REGISTRATION_URL`へ次のJSONを`POST`して端末登録／購読更新します。
+Web側の別ブランチ `feat/native-apns` に `/api/apns/devices` のPOST/DELETEと、認証付きの `/api/apns/dispatch` を追加しています。まだ本番へ配備・送信検証していないため、登録URLは空です。
 
-```json
-{
-  "deviceToken": "<APNs token>",
-  "lineIds": ["tokaido"],
-  "platform": "ios",
-  "bundleId": "com.shunsoco.trainlivemap"
-}
-```
+登録内容は `deviceToken`、Keychainの`installationSecret`、`lineIds`、`platform: ios`、`bundleId`、`environment`、`preferences`です。通知設定は有効化・利用者報告・見合わせ・再開・遅延を個別に保持します。解除時は同じ端末と所有秘密値を指定します。
 
-全路線の通知を解除した場合または通知許可が無効になった場合は、同じURLへ
-`deviceToken`、`platform`、`bundleId`をJSONで`DELETE`し、サーバー側購読情報も
-削除します。
+サーバーでは所有秘密値をハッシュ化し、トークンと購読情報をAES-256-GCMで暗号化します。原子的な所有者確認、回数制限、180日失効、無効トークン削除、送信の重複抑止を実装しています。公式通知は新鮮な状態の変化だけを対象とし、利用者報告は推定表現を使います。
 
-Web版の`/api/push/config`と`/api/push/subscriptions`はブラウザのWeb Push専用です。
-iOSアプリはこれらを呼ばず、APNsデバイストークンを絶対に送信しません。現行Web
-バックエンドにはネイティブAPNs用のPOST／DELETE／配信エンドポイントがないため、
-`APNS_REGISTRATION_URL`未設定時は通知許可と購読路線だけを端末へ保存します。
-サーバー側では、直近5分の異なるReporterによる見合わせ票3件以上、割合60%以上、
-前5分にも票が多い場合は2倍以上、路線別クールダウン、重複防止を実装してから
-本番URLを設定してください。Push購読情報は最終更新から最大180日で失効させ、
-通知解除の`DELETE`およびAPNsの失効応答で直ちに削除します。アプリ内プライバシー表示
-にもこの保持期間と削除方法を明記します。通知文は必ず「可能性」「利用者からの報告」
-と明記します。
+ブラウザの `/api/push/*` にAPNsトークンを送信しません。鍵・Team ID・Key ID・暗号化鍵・スケジューラーの設定はサーバー側だけで管理します。Apple鍵の新規作成、本番通知送信、費用が発生する設定は未実施です。
 
-## AdMobとUMP
+## 広告
 
-[Google Mobile Ads SDK公式手順](https://developers.google.com/admob/ios/quick-start)
-に沿ってSPM導入しています。
-
-DebugはGoogle公式テストIDだけを使用します。
-
-- App ID: `ca-app-pub-3940256099942544~1458002511`
-- Adaptive Banner: `ca-app-pub-3940256099942544/2435281174`
-
-Release用IDが未設定なら広告SDKを初期化せず、バナー領域も表示しません。設定済みでも
-UMPの同意情報を更新し、必要なフォームを提示し、広告リクエスト可能になってから
-Google Mobile Ads SDKを初期化します。本物の広告IDをGitへコミットしないでください。
+初回リリースに広告はありません。Google Mobile Ads、UMP、広告ID、SKAdNetwork設定を除去しました。ATTの要求も行いません。
 
 ## デザインとアクセシビリティ
 
@@ -341,7 +313,7 @@ xcodebuild \
   test
 ```
 
-2026-08-01のフェーズ3〜6最終検証結果:
+過去の検証（2026-08-01、最新の結果はHANDOFF.mdを参照）:
 
 - 実行先: iPhone 17 Pro Simulator／iOS 26.4
 - Unit Test: 86件中86件成功、失敗0
@@ -370,11 +342,9 @@ App Store提出までに次を外部環境で設定してください。
 - Apple Developer Team、配布証明書／Provisioning Profile
 - APNs Provider Keyまたは証明書、Team ID、Key ID
 - ネイティブAPNs登録／解除／配信バックエンドと`APNS_REGISTRATION_URL`
-- Release用`ADMOB_APP_ID`と`ADMOB_BANNER_UNIT_ID`
-- 必要地域向けのUMPメッセージ
 - App Store ConnectのサポートURL、マーケティングURL、掲載メタデータ
 
-プライバシーポリシーと利用規約のURLは設定済みです。APNs、AdMob、Apple署名が
+プライバシーポリシーと利用規約のURLは設定済みです。APNs、Apple署名が
 未設定でも、該当機能を安全に無効化した状態でアプリ本体とテストをビルドできます。
 
 ## データと地図のクレジット
@@ -384,12 +354,12 @@ App Store提出までに次を外部環境で設定してください。
   [データカタログ](https://ckan.odpt.org/)
 - OpenStreetMap:
   [Copyright and License](https://www.openstreetmap.org/copyright)
-- CARTO:
-  [Attributions](https://carto.com/attributions)
+- OpenFreeMap: [公開スタイル](https://openfreemap.org/quick_start/)
+- OpenMapTiles: [Copyright](https://openmaptiles.org/copyright/)
 
 ODPTチャレンジ2026およびデータ提供者ごとの利用条件に従ってください。MapLibreの
-ロゴと帰属ボタンは非表示にしておらず、スタイルにも
-`© OpenStreetMap contributors, © CARTO`を設定しています。
+帰属ボタンを保持し、OpenFreeMap・OpenMapTiles・OpenStreetMapへのリンクを常時表示します。
+背景は `https://tiles.openfreemap.org/styles/positron`、読込失敗時は `#E8EAED` のローカルスタイルで路線と列車の表示を継続します。
 
 ## ディレクトリ構成
 
@@ -401,7 +371,6 @@ TrainLiveMap/
 ├── Design/              色、M PLUS Rounded、共通スタイル
 ├── Features/
 │   ├── About/
-│   ├── Ads/
 │   ├── Community/
 │   ├── Filters/
 │   ├── Main/

@@ -33,10 +33,12 @@ final class NotificationRegistrarSecurityTests: XCTestCase {
         )
 
         try await registrar.register(
-            deviceToken: "0123456789abcdef",
-            lineIDs: ["JR-East.Tokaido"]
+            deviceToken: String(repeating: "a", count: 64),
+            lineIDs: ["yamanote"],
+            installationSecret: String(repeating: "a", count: 64),
+            preferences: NotificationPreferences(enabled: true)
         )
-        try await registrar.unregister(deviceToken: "0123456789abcdef")
+        try await registrar.unregister(deviceToken: String(repeating: "a", count: 64), installationSecret: String(repeating: "a", count: 64))
 
         let requests = recorder.requests
         XCTAssertEqual(requests.count, 2)
@@ -48,7 +50,7 @@ final class NotificationRegistrarSecurityTests: XCTestCase {
         )
 
         let registerBody = try jsonBody(of: requests[0])
-        XCTAssertEqual(registerBody["deviceToken"] as? String, "0123456789abcdef")
+        XCTAssertEqual(registerBody["deviceToken"] as? String, String(repeating: "a", count: 64))
         XCTAssertEqual(registerBody["platform"] as? String, "ios")
         XCTAssertEqual(
             registerBody["bundleId"] as? String,
@@ -56,11 +58,11 @@ final class NotificationRegistrarSecurityTests: XCTestCase {
         )
         XCTAssertEqual(
             registerBody["lineIds"] as? [String],
-            ["JR-East.Tokaido"]
+            ["yamanote"]
         )
 
         let unregisterBody = try jsonBody(of: requests[1])
-        XCTAssertEqual(unregisterBody["deviceToken"] as? String, "0123456789abcdef")
+        XCTAssertEqual(unregisterBody["deviceToken"] as? String, String(repeating: "a", count: 64))
         XCTAssertEqual(unregisterBody["platform"] as? String, "ios")
         XCTAssertEqual(
             unregisterBody["bundleId"] as? String,

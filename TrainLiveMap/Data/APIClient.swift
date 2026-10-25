@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum APIClientError: LocalizedError, Equatable, Sendable {
     case invalidURL
@@ -56,6 +57,7 @@ protocol TrainAPIService: Sendable {
 }
 
 final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
+    private let logger = Logger(subsystem: "com.shunsoco.trainlivemap", category: "network")
     private let baseURL: URL
     private let session: URLSession
     private let decoder: JSONDecoder
@@ -180,6 +182,7 @@ final class URLSessionTrainAPIService: TrainAPIService, @unchecked Sendable {
             throw APIClientError.insecureURL
         }
         guard (200..<300).contains(httpResponse.statusCode) else {
+            logger.error("API request failed, HTTP status: \(httpResponse.statusCode, privacy: .public)")
             let serverMessage = (try? decoder.decode(
                 APIErrorResponse.self,
                 from: data

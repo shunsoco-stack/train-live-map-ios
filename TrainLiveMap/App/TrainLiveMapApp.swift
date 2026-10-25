@@ -7,7 +7,6 @@ struct TrainLiveMapApp: App {
 
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel: MainViewModel
-    @StateObject private var adManager: AdManager
     @StateObject private var notificationManager: NotificationManager
 
     init() {
@@ -28,10 +27,11 @@ struct TrainLiveMapApp: App {
         _viewModel = StateObject(
             wrappedValue: MainViewModel(
                 repository: repository,
-                preferences: preferences
+                preferences: preferences,
+                connectivityMonitor: AppConfiguration.isUITesting && ProcessInfo.processInfo.arguments.contains("-UITestOffline")
+                    ? UITestOfflineConnectivityMonitor() : NWPathConnectivityMonitor()
             )
         )
-        _adManager = StateObject(wrappedValue: AdManager(configuration: configuration))
         _notificationManager = StateObject(wrappedValue: .shared)
     }
 
@@ -43,7 +43,6 @@ struct TrainLiveMapApp: App {
                 } else {
                     MainView(
                         viewModel: viewModel,
-                        adManager: adManager,
                         notificationManager: notificationManager
                     )
                         .mplusAppTypography()
@@ -60,9 +59,9 @@ struct TrainLiveMapApp: App {
                                 with: .current
                             )
                             await notificationManager.syncSubscriptions(
-                                lineIDs: viewModel.preferences.notificationLineIDs
+                                lineIDs: viewModel.preferences.notificationLineIDs,
+                                settings: viewModel.preferences.notificationSettings
                             )
-                            await adManager.prepare()
                         }
                         .onChange(of: scenePhase) { _, newPhase in
                             switch newPhase {

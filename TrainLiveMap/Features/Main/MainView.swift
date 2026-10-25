@@ -11,7 +11,6 @@ enum MapSceneActivityPolicy {
 struct MainView: View {
     @ObservedObject private var viewModel: MainViewModel
     @ObservedObject private var preferences: UserPreferences
-    @ObservedObject private var adManager: AdManager
     @ObservedObject private var notificationManager: NotificationManager
 
     @Environment(\.scenePhase) private var scenePhase
@@ -22,6 +21,7 @@ struct MainView: View {
     @State private var notificationSheetPresented = false
     @State private var aboutSheetPresented = false
     @State private var trainSearchSheetPresented = false
+    @State private var serviceSheetPresented = false
     @State private var legendSheetPresented = false
     @State private var pendingSearchedTrainID: String?
     @State private var locationRequestID = 0
@@ -29,16 +29,13 @@ struct MainView: View {
     @State private var locationStatusMessage: String?
     @State private var locationAlert: LocationAlert?
     @State private var locationFeedbackDismissTask: Task<Void, Never>?
-    @State private var adBannerLoaded = false
 
     init(
         viewModel: MainViewModel,
-        adManager: AdManager,
         notificationManager: NotificationManager
     ) {
         self.viewModel = viewModel
         preferences = viewModel.preferences
-        self.adManager = adManager
         self.notificationManager = notificationManager
     }
 
@@ -69,7 +66,13 @@ struct MainView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            banner
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ViewThatFits(in: .horizontal) {
+                attributionLinks
+                attributionLinks.font(.system(size: 9))
+            }
+            .frame(maxWidth: .infinity).background(Color(.systemBackground))
         }
         .background(Color(.systemBackground))
         .sheet(isPresented: $railwaySheetPresented) {
@@ -78,6 +81,9 @@ struct MainView: View {
                 isLoading: viewModel.isLoadingRailways,
                 preferences: preferences
             )
+        }
+        .sheet(isPresented: $serviceSheetPresented) {
+            ServiceStatusSheet(options: visibleRailwayOptions, statuses: viewModel.visibleServiceStatuses, isStale: viewModel.serviceStatusIsStale)
         }
         .sheet(isPresented: $communitySheetPresented) {
             CommunityReportSheet(
@@ -130,9 +136,12 @@ struct MainView: View {
             preferences.showOnly(lineID: lineID)
             _ = notificationManager.consumePendingLineID()
         }
+        .onChange(of: preferences.notificationSettings) { _, settings in
+            Task { await notificationManager.syncSubscriptions(lineIDs: preferences.notificationLineIDs, settings: settings) }
+        }
         .onChange(of: preferences.notificationLineIDs) { _, lineIDs in
             Task {
-                await notificationManager.syncSubscriptions(lineIDs: lineIDs)
+                await notificationManager.syncSubscriptions(lineIDs: lineIDs, settings: preferences.notificationSettings)
             }
         }
         .onDisappear {
@@ -344,33 +353,14 @@ struct MainView: View {
         }
     }
 
-    @ViewBuilder
-    private var banner: some View {
-        if adManager.isReady, let unitID = adManager.bannerUnitID {
-            Color.clear
-                .frame(height: adBannerLoaded ? bannerHeight : 1)
-                .overlay(alignment: .bottom) {
-                    AdaptiveBannerView(
-                        adUnitID: unitID,
-                        isLoaded: $adBannerLoaded
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: bannerHeight)
-                }
-                .background(
-                    adBannerLoaded ? Color(.systemBackground) : Color.clear
-                )
-                .clipped()
-                .accessibilityLabel("広告")
-                .accessibilityHidden(!adBannerLoaded)
-                .animation(
-                    reduceMotion ? nil : .easeOut(duration: 0.2),
-                    value: adBannerLoaded
-                )
+    private var attributionLinks: some View {
+        HStack(spacing: 6) {
+            Link("OpenFreeMap", destination: URL(string: "https://openfreemap.org")!)
+            Link("© OpenMapTiles", destination: URL(string: "https://openmaptiles.org")!)
+            Link("© OpenStreetMap", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
         }
-    }
-
-    private var bannerHeight: CGFloat {
-        UIDevice.current.userInterfaceIdiom == .pad ? 90 : 52
+        .font(.caption2).frame(minHeight: 44)
+        .accessibilityIdentifier("map-attribution")
     }
 
     private var header: some View {
@@ -426,20 +416,7 @@ struct MainView: View {
             .accessibilityLabel("運行情報の通知設定")
             .accessibilityIdentifier("notification-settings-button")
 
-            if adManager.privacyOptionsRequired {
-                Button {
-                    Task {
-                        await adManager.presentPrivacyOptions()
-                    }
-                } label: {
-                    Image(systemName: "hand.raised.fill")
-                        .frame(width: 44, height: 44)
-                        .foregroundStyle(RailTheme.cream)
-                        .background(.white.opacity(0.1), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("広告プライバシー設定")
-            }
+
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -481,10 +458,14 @@ struct MainView: View {
             }
 
             if !viewModel.visibleServiceStatuses.isEmpty {
-                ServiceStatusPanel(
-                    statuses: viewModel.visibleServiceStatuses,
-                    isStale: viewModel.serviceStatusIsStale
-                )
+                Button { serviceSheetPresented = true } label: {
+                    ServiceStatusPanel(
+                        statuses: viewModel.visibleServiceStatuses,
+                        isStale: viewModel.serviceStatusIsStale
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("service-status-button")
                 .frame(maxWidth: 600)
             }
 
@@ -732,7 +713,7 @@ private struct ServiceStatusPanel: View {
 
             if abnormalStatuses.isEmpty {
                 Label(
-                    "表示中の\(statuses.count)路線は平常です",
+                    isStale ? "運行情報を取得できませんでした" : "表示中の\(statuses.count)路線は平常です",
                     systemImage: "checkmark.circle.fill"
                 )
                 .font(RailFont.bold(.subheadline))
@@ -757,6 +738,9 @@ private struct ServiceStatusPanel: View {
                             Text(status.message)
                                 .font(RailFont.bold(.caption))
                                 .lineLimit(3)
+                            Text("\(status.updatedAt.formatted(date: .omitted, time: .shortened)) ・ \(status.sourceLabel ?? "ODPT")")
+                                .font(RailFont.regular(.caption2))
+                                .foregroundStyle(.secondary)
                         }
                         Spacer(minLength: 2)
                     }

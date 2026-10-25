@@ -1,0 +1,18 @@
+App Privacy申告案（提出前に配信サーバー設定・ホスティングのログ保持を照合する）
+
+対象コード: SwiftUIアプリ、MapLibre 6.28.0、Web側community-reportsと新規APNs API。
+広告SDK、IDFAアクセス、解析SDK、アカウント、氏名、電話番号、決済はアプリに含まれない。
+
+Identifiers / Device ID: 収集あり。投稿用ランダムIDを送信しサーバーでHMAC化。通知有効時はAPNsトークンとインストール識別用秘密値を送信。APNsトークンはサーバーで暗号化し、秘密値はハッシュのみ保存。端末識別子へ関連付くためLinked to UserをYesとする保守的な案。用途App Functionality。不正投稿防止と通知。Trackingなし。
+User Content / Other User Content: 投稿する路線・状態・遅延分数・投稿時刻。識別子へ関連付く。用途App Functionality。Trackingなし。
+表示路線・お気に入り・通知種別: UserDefaultsで保存。通知対象路線と通知種別は通知設定を有効にした場合に送信。
+Location: アプリは現在地を永続化・当社APIへ送信しない。MapLibreが表示領域のタイルをOpenFreeMapへ要求するため、地図提供者にはIPと要求タイル範囲が伝わる。端末の現在地そのものは渡さない。OpenFreeMapとホスティング側の実際のログ運用を確認し、保持・位置推定の有無に応じて最終申告を確定する。
+Diagnostics: OSLogにはHTTPステータスなど技術的イベントのみ。端末識別子・トークン・本文・座標は出力しない。開発者サーバーへ診断データを送信するSDKなし。
+Other Data: Vercel等のアクセスログはIP、User-Agent、時刻を含み得る。ホスティングの実際の保持・利用を確認して最終申告する。『データ収集なし』とは申告しない。
+
+APNs購読は最終更新から180日で自動失効。通知解除時に削除。投稿はバックエンドの直近30分集計・保存期限に従う。問い合わせメールはユーザーがメールアプリから送信する。
+PrivacyInfo.xcprivacyはUserDefaults CA92.1、DeviceIDとOtherUserContent/AppFunctionalityを宣言。MapLibre内のPrivacy manifestもArchiveで確認する。
+
+Apple参照: https://developer.apple.com/app-store/app-privacy-details/
+
+OpenFreeMap公開ポリシー（2026-10-08更新、2026-10-25確認）: 通常アクセスログにIPは保存せず、エラー時のIP・要求URLは7日、安全対策のログは最大30日。Cloudflareの処理も存在。地図表示範囲の要求は現在地収集と同一ではないが、第三者処理をポリシーで説明する。https://openfreemap.org/privacy/

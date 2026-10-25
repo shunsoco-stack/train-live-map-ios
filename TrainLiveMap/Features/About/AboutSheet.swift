@@ -72,6 +72,11 @@ struct AboutSheet: View {
                     .foregroundStyle(.secondary)
                 }
 
+                Section("地図の帰属") {
+                    Link("OpenFreeMap", destination: URL(string: "https://openfreemap.org")!)
+                    Link("© OpenMapTiles", destination: URL(string: "https://openmaptiles.org")!)
+                    Link("© OpenStreetMap contributors", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
+                }
                 Section("法務情報") {
                     Link(destination: Self.privacyPolicyURL) {
                         Label(

@@ -5,3 +5,8 @@ build/
 *.xcuserstate
 xcuserdata/
 Config/Secrets.xcconfig
+Config/*.local.xcconfig
+Config/Local.xcconfig
+Artifacts/
+*.xcarchive/
+*.ipa

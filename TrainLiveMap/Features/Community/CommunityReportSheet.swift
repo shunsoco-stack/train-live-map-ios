@@ -6,7 +6,11 @@ struct CommunityReportSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedLineID = ""
-    @State private var selectedStatus: CommunityReportStatus = .onTime
+    @State private var selectedChoice = "on-time"
+    private var selectedStatus: CommunityReportStatus {
+        selectedChoice == "resumed" ? .onTime : selectedChoice == "major-delay" ? .delayed
+            : CommunityReportStatus(rawValue: selectedChoice) ?? .onTime
+    }
     @State private var delayMinutes = 5
 
     private var response: CommunityReportsAPIResponse? {
@@ -117,14 +121,21 @@ struct CommunityReportSheet: View {
                 }
                 .accessibilityIdentifier("community-line-picker")
 
-                Picker("状況", selection: $selectedStatus) {
-                    ForEach(CommunityReportStatus.allCases) { status in
-                        Label(status.label, systemImage: status.systemImage)
-                            .tag(status)
-                    }
+                Picker("状況", selection: $selectedChoice) {
+                    Text("平常").tag("on-time")
+                    Text("○分程度の遅れ").tag("delayed")
+                    Text("大幅な遅れ").tag("major-delay")
+                    Text("運転見合わせ").tag("suspended")
+                    Text("運転再開").tag("resumed")
                 }
-                .pickerStyle(.segmented)
                 .accessibilityIdentifier("community-status-picker")
+                .onChange(of: selectedChoice) { _, choice in
+                    if choice == "major-delay" { delayMinutes = max(30, delayMinutes) }
+                }
+                if selectedChoice == "resumed" {
+                    Text("利用者による再開の報告です。平常票にも集計されます。公式の運転再開とは区別します。")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
 
                 if selectedStatus == .delayed {
                     Stepper(
@@ -153,7 +164,8 @@ struct CommunityReportSheet: View {
                             status: selectedStatus,
                             delayMinutes: selectedStatus == .delayed
                                 ? delayMinutes
-                                : nil
+                                : nil,
+                            isResumption: selectedChoice == "resumed"
                         )
                     }
                 } label: {
@@ -190,7 +202,7 @@ struct CommunityReportSheet: View {
     private var privacySection: some View {
         Section("プライバシー") {
             Label(
-                "個人情報は収集しません。端末内で生成した匿名Reporter IDをKeychainで保持し、連続投稿の制限に使用します。",
+                "氏名やメールアドレスは投稿に不要です。端末で生成したランダムIDをKeychainに保存し、投稿内容とともに送信して連続投稿を制限します。",
                 systemImage: "hand.raised.fill"
             )
             .font(RailFont.regular(.footnote))
@@ -227,6 +239,9 @@ private struct CommunitySummaryRow: View {
                 Text(statusText)
                     .font(RailFont.extraBold(.subheadline))
                     .foregroundStyle(statusColor)
+                if let count = summary.resumedCount, count > 0 {
+                    Text("利用者から運転再開の報告 \(count)件").font(.caption)
+                }
                 Text(
                     "計\(summary.voteCount)件 "
                         + "（平常\(summary.counts.onTime)・遅延\(summary.counts.delayed)"

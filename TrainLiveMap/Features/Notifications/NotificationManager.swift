@@ -31,6 +31,10 @@ final class NotificationManager: NSObject, ObservableObject {
     @Published private(set) var pendingLineID: String?
 
     private var deviceToken: String?
+    private var preferences = NotificationPreferences()
+    private var isSynchronizing = false
+    private var synchronizationRequested = false
+    private var installationSecret: String?
     private var subscribedLineIDs = Set<String>()
     private var registrar: APNSDeviceRegistrar?
     private let secureStore: any SecureStringStoring
@@ -59,6 +63,14 @@ final class NotificationManager: NSObject, ObservableObject {
 
         if registrar != nil {
             do {
+                if let stored = try secureStore.string(forKey: SecureStorageKey.apnsInstallationSecret) {
+                    installationSecret = stored
+                } else {
+                    let secret = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                        + UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                    try secureStore.set(secret, forKey: SecureStorageKey.apnsInstallationSecret)
+                    installationSecret = secret
+                }
                 deviceToken = try secureStore.string(
                     forKey: SecureStorageKey.apnsDeviceToken
                 )
@@ -86,13 +98,24 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
-    func syncSubscriptions(lineIDs: Set<String>) async {
+    func syncSubscriptions(lineIDs: Set<String>, settings: NotificationPreferences? = nil) async {
+        if let settings { preferences = settings }
         subscribedLineIDs = lineIDs
-        guard isConfigured, let registrar else {
-            return
+        synchronizationRequested = true
+        guard !isSynchronizing else { return }
+        isSynchronizing = true
+        defer { isSynchronizing = false }
+        while synchronizationRequested {
+            synchronizationRequested = false
+            await synchronizeCurrentSubscription()
         }
+    }
 
-        if lineIDs.isEmpty {
+    private func synchronizeCurrentSubscription() async {
+        let lineIDs = subscribedLineIDs
+        let settings = preferences
+        guard isConfigured, let registrar else { return }
+        if lineIDs.isEmpty || !settings.enabled {
             await removeServerRegistration(
                 using: registrar,
                 failureMessage: "通知登録をサーバーから削除できませんでした。"
@@ -108,10 +131,16 @@ final class NotificationManager: NSObject, ObservableObject {
             return
         }
 
+        guard let installationSecret else {
+            registrationError = "通知設定を安全に保存できませんでした。"
+            return
+        }
         do {
             try await registrar.register(
                 deviceToken: deviceToken,
-                lineIDs: lineIDs.sorted()
+                lineIDs: lineIDs.sorted(),
+                installationSecret: installationSecret,
+                preferences: settings
             )
             registrationError = nil
         } catch {
@@ -196,7 +225,7 @@ final class NotificationManager: NSObject, ObservableObject {
         let previousToken = deviceToken
         if let previousToken, previousToken != newToken {
             do {
-                try await registrar.unregister(deviceToken: previousToken)
+                try await registrar.unregister(deviceToken: previousToken, installationSecret: installationSecret ?? "")
             } catch {
                 registrationError = "古い通知端末IDをサーバーから削除できませんでした。"
                 return
@@ -240,7 +269,7 @@ final class NotificationManager: NSObject, ObservableObject {
         }
 
         do {
-            try await registrar.unregister(deviceToken: deviceToken)
+            try await registrar.unregister(deviceToken: deviceToken, installationSecret: installationSecret ?? "")
         } catch {
             registrationError = failureMessage
             return
@@ -310,7 +339,10 @@ actor APNSDeviceRegistrar {
         let deviceToken: String
         let lineIds: [String]?
         let platform = "ios"
-        let bundleId = "com.shunsoco.trainlivemap"
+        let bundleId = Bundle.main.bundleIdentifier ?? "com.shunsoco.trainlivemap"
+        let environment = Bundle.main.object(forInfoDictionaryKey: "APNSEnvironment") as? String ?? "development"
+        let installationSecret: String
+        let preferences: NotificationPreferences?
     }
 
     private let endpoint: URL
@@ -337,17 +369,23 @@ actor APNSDeviceRegistrar {
         }
     }
 
-    func register(deviceToken: String, lineIDs: [String]) async throws {
+    func register(deviceToken: String, lineIDs: [String], installationSecret: String, preferences: NotificationPreferences) async throws {
+        guard deviceToken.range(of: "^[a-f0-9]{64,200}$", options: .regularExpression) != nil,
+              deviceToken.count.isMultiple(of: 2),
+              installationSecret.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+            throw APNSDeviceRegistrarError.invalidResponse
+        }
+        _ = try LineFilterQuery.queryItems(for: Set(lineIDs))
         try await send(
             method: "POST",
-            payload: Payload(deviceToken: deviceToken, lineIds: lineIDs)
+            payload: Payload(deviceToken: deviceToken, lineIds: lineIDs, installationSecret: installationSecret, preferences: preferences)
         )
     }
 
-    func unregister(deviceToken: String) async throws {
+    func unregister(deviceToken: String, installationSecret: String) async throws {
         try await send(
             method: "DELETE",
-            payload: Payload(deviceToken: deviceToken, lineIds: nil)
+            payload: Payload(deviceToken: deviceToken, lineIds: nil, installationSecret: installationSecret, preferences: nil)
         )
     }
 

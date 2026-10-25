@@ -1,0 +1,5 @@
+#include "Base.xcconfig"
+APS_ENVIRONMENT = development
+SWIFT_COMPILATION_MODE = wholemodule
+// Set a deployed HTTPS staging URL before using staging services.
+#include? "Staging.local.xcconfig"
