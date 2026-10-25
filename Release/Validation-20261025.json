@@ -1,0 +1,29 @@
+{
+  "sdk": "iOS 26.4",
+  "xcode": "26.4",
+  "unitTests": {
+    "passed": 89,
+    "failed": 0
+  },
+  "uiTests": {
+    "iPhone17Pro": {
+      "passed": 6,
+      "failed": 0
+    },
+    "iPhoneSE3": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "webTests": {
+    "passed": 112,
+    "failed": 0
+  },
+  "productionDependencyAudit": {
+    "vulnerabilities": 0
+  },
+  "unsignedArchive": "/private/tmp/TrainLiveMapFinal20261025.xcarchive",
+  "signedArchive": null,
+  "testFlightUploaded": false,
+  "appStoreSubmitted": false
+}

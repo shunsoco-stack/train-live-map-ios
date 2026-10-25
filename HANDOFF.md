@@ -48,14 +48,16 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 
 - 最新のiOS Unit Test: 89/89成功
 - 最新のiOS UI Test: 6/6成功、iPhone 17 Pro / iOS 26.4
+- iPhone SE第3世代: スモークと最大文字サイズ／ダークモードの2/2成功
 - UI: 初回・路線検索・お気に入り・公式情報・投稿・列車詳細・通知・オフライン・最大文字サイズとダークモード
-- Productionの署名なしArchive: 成功（後続のUI変更を含む最終Archiveは再実行予定）
+- Productionの署名なし最終Archive: 成功、アプリ約20.2MB
 - アプリとMapLibre双方のPrivacyInfo.xcprivacyがArchiveに存在
 - Web既存＋再開互換テスト: 107/107成功
 - Web APNs検証・通知判定・暗号化テスト: 5/5成功
 - Web TypeScript/本番ビルド、ESLint: 成功
 - Web本番依存関係: npm audit --omit=devで脆弱性0
 - ローカル配信APIは認証なしGETを401で拒否
+- Web MapLibre v6のWorker修正後、背景地図・駅・列車・詳細を目視確認
 
 テスト成果物は `/private/tmp/TrainLiveMapTests20261025-C.xcresult` と `/private/tmp/TrainLiveMapUITests20261025-D.xcresult`。一時ディレクトリなので長期保管先ではありません。
 
@@ -70,3 +72,5 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 7. App Store Connect登録、TestFlightアップロード、審査提出、審査通過後公開
 
 `Release/AppStore-ja.txt` と `Release/Privacy-Inventory.txt` に掲載文・審査メモ・Privacy Nutrition Labels案があります。提出操作と公開は未実施で、Appleの審査結果も未取得です。
+
+Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notifications有効）。新しい証明書は未作成。iOS PR: https://github.com/shunsoco-stack/train-live-map-ios/pull/1 、Web PR: https://github.com/shunsoco-stack/train-live-map/pull/9 。
