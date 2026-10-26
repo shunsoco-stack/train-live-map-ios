@@ -113,5 +113,17 @@
       "network disconnect/reconnect on hardware",
       "location permission on hardware"
     ]
+  },
+  "apnsProvisioning": {
+    "ownerApproved": true,
+    "sandboxKeyCreated": true,
+    "productionKeyCreated": true,
+    "restriction": "Topic Specific: com.shunsoco.trainlivemap only",
+    "privateKeysOutsideRepository": true,
+    "fileMode": "0600",
+    "keyValidation": "Both keys valid",
+    "vercelStored": false,
+    "sandboxDeliveryVerified": false,
+    "productionPushSent": false
   }
 }

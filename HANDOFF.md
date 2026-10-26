@@ -36,7 +36,7 @@
 
 Web側の別変更で `/api/apns/devices`（POST/DELETE）と `/api/apns/dispatch`（認証付きGET）を追加。AES-256-GCM、所有者ハッシュ、Redisの原子的更新・回数制限、180日失効、無効トークン削除、状態変化・利用者報告急増の判定を実装しました。詳細はWebの `docs/native-apns.md`。
 
-本番Vercelの環境変数名を確認したところAPNs設定は未提供でした。APNS_REGISTRATION_URLは空のままで、配信は既定で無効です。鍵の新規作成・本番Push送信・本番データ削除はしていません。
+本番Vercelの環境変数名を確認したところAPNs設定は未提供でした。APNS_REGISTRATION_URLは空のままで、配信は既定で無効です。APNs専用鍵2個は所有者の明示承認後に作成済み。Vercelへの保存は2FA入力障害の解消待ち。本番Push送信・本番データ削除はしていません。
 
 ## 環境の切替
 
@@ -68,7 +68,7 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 ## 提出までの残作業
 
 1. 接続iPhoneで地図、権限、復帰、通信切替、VoiceOver、メモリ・バッテリーを検証
-2. APNs鍵・環境変数・定期実行環境を設定し、開発用端末で登録、受信、解除を検証。鍵作成・本番通知送信は確認対象
+2. 作成済みAPNs鍵をVercel Secretへ保存し、環境変数・定期実行環境を設定して開発用端末で登録、受信、解除を検証。本番通知送信は別途確認対象
 3. プライバシー申告をホスティング実設定と照合して確定。Vercel接続ツールはプロジェクト参照不可、Chromeログイン待ち
 4. App Store Connectの画像、プライバシー公開、配信対象プラットフォームの最終確認
 5. 所有者の確認後に審査提出し、Apple承認後に公開。審査提出・公開は未承認
@@ -102,11 +102,11 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - 年齢制限4+、第三者コンテンツの権利保有、無料、日本のみ配信を保存済み。子ども向けカテゴリは選択していない。
 - プライバシーはOther User ContentとDevice IDを、App Functionality／Linked Yes／Tracking Noとして下書き保存。申告全体の公開は未実施。
 - Web PR #9を承認後にマージ。Vercel本番チェック成功、公開/supportと/privacyのHTTP成功・iOS記載・問い合わせ先を確認。本番通知は無効、送信していない。
-- Web Native Pushテスト9/9、型チェック・対象ESLint成功（既存107件と合計116件）。Sandbox／Production別APNs鍵、JWTキャッシュ分離と設定不備の拒否を含む。鍵の作成は未実施。
+- Web Native Pushテスト9/9、型チェック・対象ESLint成功（既存107件と合計116件）。Sandbox／Production別APNs鍵、JWTキャッシュ分離と設定不備の拒否を含む。この時点では鍵の作成は未実施（後述の承認後に作成済み）。
 - 証跡画像はGit対象外のArtifacts/20261027へ保存。審査連絡先電話番号をGitに含めない。
 
 - 初回配信対象はiPhone・iPad。MacとApple Vision Proの自動配信設定は無効にして保存。
-- APNs専用鍵はSandbox／Production各1個、対象com.shunsoco.trainlivemapだけの作成を所有者へ確認中。Apple画面でSandboxの対象を選択済みだが、保存・登録・鍵作成は未実施。
+- APNs専用鍵はSandbox／Production各1個、対象com.shunsoco.trainlivemapだけの作成とVercelへの安全な保存を所有者が承認。両鍵の作成・ダウンロード・形式検証・保護フォルダーへの保存は完了。
 
 ## 2026-10-27 実機UI確認
 
@@ -115,4 +115,12 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - 結果: `/private/tmp/TLMLiveDevice20261027.xcresult`。画像は `Artifacts/20261027/DeviceUI/`（Git対象外）。
 - 実機テストの署名だけを変更した一時コピーを使用。アプリの63ソース／リソースは元とハッシュ一致。既存のアプリ用開発プロファイルとテスト用標準プロファイルを使用し、新規証明書は作成していない。
 - 追加テストは `TLM_LIVE_UI_TESTS=1` をテストランナーの環境に設定したときだけ実行する。投稿、現在地・通知権限要求、Push送信は行わない。通常のテスト実行ではスキップ。
-- APNs鍵作成承認とVercelログインを待つ。審査提出・公開、長時間の電力測定、VoiceOver読み上げ、APNs実受信は未完了。
+- APNs鍵作成は承認・実施済み。Vercelログインを待つ。審査提出・公開、長時間の電力測定、VoiceOver読み上げ、APNs実受信は未完了。
+
+## 2026-10-27 APNs鍵の作成
+
+- Apple Developer Team LC47V8NZP6で、Train Live Map専用のSandbox用とProduction用の鍵を各1個作成。どちらもTopic Specific、対象com.shunsoco.trainlivemapのみ。既存の他アプリ用鍵は変更・失効していない。
+- .p8はGit管理外の保護フォルダーへ移動。ディレクトリ700、鍵ファイル600、OpenSSLの形式検証は両方成功。秘密鍵の内容をチャット・ログ・リポジトリへ出力していない。
+- 鍵の識別情報とローカル保存先は、Git外の `/Users/kinjo/Documents/Codex/SecureCredentials/TrainLiveMap/APNs/manifest.json` に保存。Vercelへの登録は未実施。
+- Vercelの2FA入力障害を調査。入力欄は有効でフォーカスあり。英数／貼り付けとデバッグ解除でも解消せず、通常ログイン画面から開き直して再試行を所有者へ依頼中。2FA解除・認証回避はしていない。
+- APNS_REGISTRATION_URLと通知送信ゲートは引き続き無効。Sandbox／Productionへの実送信は未実施。
