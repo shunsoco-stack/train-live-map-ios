@@ -468,8 +468,8 @@ struct MapLibreTrainMap: UIViewRepresentable {
             // central Tokyo and let the user pan to the rest of the routes.
             if maximumLatitude - minimumLatitude > 1.5 || maximumLongitude - minimumLongitude > 2 {
                 mapView.setCenter(
-                    CLLocationCoordinate2D(latitude: 35.70, longitude: 139.75),
-                    zoomLevel: 10,
+                    CLLocationCoordinate2D(latitude: 35.69, longitude: 139.75),
+                    zoomLevel: 12,
                     animated: hasSetViewport && !reduceMotion
                 )
                 hasSetViewport = true

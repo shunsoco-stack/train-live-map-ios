@@ -701,7 +701,7 @@ private struct ServiceStatusPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 5) {
-                Text("公式運行情報")
+                Text("運行情報")
                     .font(RailFont.extraBold(.caption))
                 if isStale {
                     Text("古い情報")
@@ -715,7 +715,10 @@ private struct ServiceStatusPanel: View {
 
             if abnormalStatuses.isEmpty {
                 Label(
-                    isStale ? "運行情報を取得できませんでした" : "表示中の\(statuses.count)路線は平常です",
+                    isStale ? "運行情報を取得できませんでした"
+                        : statuses.contains(where: { $0.dataAccuracy == .estimated })
+                            ? "列車位置情報では大きな遅れはありません（推定）"
+                            : "表示中の\(statuses.count)路線は平常です",
                     systemImage: "checkmark.circle.fill"
                 )
                 .font(RailFont.bold(.subheadline))

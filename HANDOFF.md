@@ -92,3 +92,15 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - 2026-10-26再開時、Macはロック中、iPhoneはdevicectlでunavailable。解除・接続後に実機検証とApple画面確認を再開する
 
 実データの初期表示で広域路線を全体表示するとアイコンが密集したため、広域の複数路線は東京付近から表示するよう調整。運行情報パネルは1件を要約し、全件はタップ先の画面で確認する。
+
+
+## 2026-10-27 更新
+
+- 1.1.0(2)はApp Store ConnectのTestFlightで「提出準備完了」を確認済み。
+- 実データの地図確認で列車が密集していたため、広域路線選択時の初期ズームを12へ変更。推定情報のカードを「公式」と誤解しないよう見出し・平常時の文言を調整し、ビルド3に更新。
+- ビルド3: シミュレータビルド、署名付きProduction Archive、IPA書き出し成功。お気に入り／運行情報UIテスト1/1成功。89件の単体テストと既存UI検証は上記の前ビルドでの結果。
+- 最新成果物: Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa と同名xcarchive（Git対象外）。Transporterで2026-10-27 00:10 JSTのデリバリ済み、Apple処理中を確認。ビルド3の処理完了は未確認。
+- 実データの6.9インチiPhone画像を Release/Screenshots/iPhone-6.9-inch/01-live-map.png（1320×2868）へ保存。App Store Connectへの画像登録とiPad画像は未完了。
+- 年齢制限4+を保存済み。子ども向けカテゴリは選択していない。外部コンテンツの権利保有申告は自動承認レビューが明示承認を要求したため、所有者へ確認中。申告は未保存。
+- Web PR #9にeeda487を追加。Sandbox／ProductionごとのAPNs鍵とJWTキャッシュ分離、設定不備の拒否を実装。Native Pushテスト9/9、型チェック・対象ESLint成功（既存107件と合計116件）。鍵の作成、通知の送信、配備は未実施。
+- Appleのブラウザ認証とTransporter操作は復旧。Vercel連携403／ブラウザ再ログイン待ちは未解消。

@@ -21,20 +21,32 @@
     "iPad": {
       "status": "infrastructure_failure",
       "reason": "Test runner was killed before establishing its connection; UI tests did not complete."
+    },
+    "iPhone17ProMaxBuild3": {
+      "passed": 1,
+      "failed": 0,
+      "resultBundle": "/private/tmp/TrainLiveMapBuild3UITests20261026.xcresult"
     }
   },
   "webTests": {
-    "passed": 112,
+    "passed": 116,
     "failed": 0
   },
   "productionDependencyAudit": {
     "vulnerabilities": 0
   },
   "unsignedArchive": "/private/tmp/TrainLiveMapFinal20261025.xcarchive",
-  "signedArchive": "/private/tmp/TrainLiveMapSignedFinal20261025.xcarchive",
-  "exportedIPA": "Artifacts/20261025/TrainLiveMap-1.1.0-2.ipa",
+  "signedArchive": "Artifacts/20261027/TrainLiveMap-1.1.0-3.xcarchive",
+  "exportedIPA": "Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa",
   "appStoreConnectAppID": "6826815750",
-  "transporterUpload": "started; delivery result not yet verified",
-  "testFlightUploaded": false,
-  "appStoreSubmitted": false
+  "transporterUpload": "Build 3 delivered 2026-10-27 00:10 JST; Apple processing",
+  "testFlightUploaded": true,
+  "appStoreSubmitted": false,
+  "version": "1.1.0",
+  "build": 3,
+  "appStoreConnectBuilds": {
+    "2": "Ready to Submit verified in App Store Connect",
+    "3": "Delivered; processing"
+  },
+  "ageRating": "4+ saved; not Kids category"
 }
