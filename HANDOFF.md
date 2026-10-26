@@ -1,6 +1,6 @@
 # Train Live Map iOS 引き継ぎ
 
-更新日: 2026-10-25。既存iOSプロジェクトを継続し、現行Web APIに合わせてリリース準備を進めています。App Store公開・TestFlightアップロードはまだ完了していません。
+更新日: 2026-10-26。既存iOSプロジェクトを継続し、現行Web APIに合わせてリリース準備を進めています。署名済みIPAを書き出し、Transporterのアップロードを開始しました。転送結果・TestFlight処理完了・App Store公開は未確認です。
 
 ## リポジトリと環境
 
@@ -42,15 +42,19 @@ Web側の別変更で `/api/apns/devices`（POST/DELETE）と `/api/apns/dispatc
 
 Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、Release/ArchiveはProductionを使用します。Staging専用URLは未提供のため現状は本番読み取りAPIです。実環境URLを上書きしてください。
 
-`Config/Signing.local.xcconfig`、`Config/Secrets.xcconfig` はGit対象外。Apple Teamや署名設定は確定後に設定します。秘密鍵をxcconfigへ保存してはいけません。
+`Config/Signing.local.xcconfig`、`Config/Secrets.xcconfig` はGit対象外。Apple Teamは確認済み。秘密鍵をxcconfigへ保存してはいけません。
 
 ## 検証済み
 
 - 最新のiOS Unit Test: 89/89成功
 - 最新のiOS UI Test: 6/6成功、iPhone 17 Pro / iOS 26.4
 - iPhone SE第3世代: スモークと最大文字サイズ／ダークモードの2/2成功
+- 最終地図調整後のiPhone 17 Pro Max: スモーク1/1成功（TrainLiveMapFinalUITests20261025.xcresult）
+- iPad: テストランナー起動接続前の終了で未完了。成功扱いにしない
 - UI: 初回・路線検索・お気に入り・公式情報・投稿・列車詳細・通知・オフライン・最大文字サイズとダークモード
 - Productionの署名なし最終Archive: 成功、アプリ約20.2MB
+- Productionの署名付き最終ArchiveとIPA書き出し: 成功、IPA約10MB
+- 配布署名のBundle ID／Teamとproduction APNs、get-task-allow=falseを確認
 - アプリとMapLibre双方のPrivacyInfo.xcprivacyがArchiveに存在
 - Web既存＋再開互換テスト: 107/107成功
 - Web APNs検証・通知判定・暗号化テスト: 5/5成功
@@ -63,14 +67,28 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 
 ## 提出までの残作業
 
-1. 小型iPhone、大型iPhone、iPadの今回の変更を再確認し、実データのストア用スクリーンショットを保存
+1. 最終版の地図を再目視確認し、iPadテストと実データのストア用スクリーンショットを完成
 2. 接続iPhoneで地図、権限、復帰、通信切替、VoiceOver、メモリ・バッテリーを検証
-3. 確定したBundle IDとTeamで既存証明書を利用して署名Archiveを作成
+3. Transporterで開始した1.1.0(2)の転送結果とTestFlight処理完了を確認
 4. APNs鍵・環境変数・定期実行環境を設定し、開発用端末で登録、受信、解除を検証
 5. Web変更をレビュー・配備し、/supportと更新した/privacyが公開されていることを確認
-6. プライバシー申告をホスティング実設定と照合、ODPTのアプリ配布条件を確認
-7. App Store Connect登録、TestFlightアップロード、審査提出、審査通過後公開
+6. プライバシー申告をホスティング実設定と照合。ODPT応募予定は所有者確認済み、期限と条件はRelease/Data-License-Review.txtを参照
+7. App Store Connectの年齢制限（途中）、配信国・価格・プライバシー・画像を完成し、最終確認後に審査提出・公開
 
 `Release/AppStore-ja.txt` と `Release/Privacy-Inventory.txt` に掲載文・審査メモ・Privacy Nutrition Labels案があります。提出操作と公開は未実施で、Appleの審査結果も未取得です。
 
 Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notifications有効）。新しい証明書は未作成。iOS PR: https://github.com/shunsoco-stack/train-live-map-ios/pull/1 、Web PR: https://github.com/shunsoco-stack/train-live-map/pull/9 。
+
+## 署名・Apple登録の現状
+
+- App Store Connect: https://appstoreconnect.apple.com/apps/6826815750/distribution/ios/version/inflight
+- 1.1.0の説明文、サブタイトル、キーワード、サポートURL、審査連絡先、審査メモを保存済み。個人の電話番号はリポジトリへ記録しない
+- カテゴリはナビゲーション／旅行。審査後は手動公開に設定済み
+- 配布プロファイル: Train Live Map App Store 20261025（既存配布証明書使用）
+- 開発プロファイル: Train Live Map Development 20261025（既存開発証明書、登録済みiPhone 16 Pro Max使用）
+- 最終Archive: /private/tmp/TrainLiveMapSignedFinal20261025.xcarchive
+- IPA: Artifacts/20261025/TrainLiveMap-1.1.0-2.ipa（Git対象外）
+- ExportOptions: Release/ExportOptions.plist
+- 2026-10-26再開時、Macはロック中、iPhoneはdevicectlでunavailable。解除・接続後に実機検証とApple画面確認を再開する
+
+実データの初期表示で広域路線を全体表示するとアイコンが密集したため、広域の複数路線は東京付近から表示するよう調整。運行情報パネルは1件を要約し、全件はタップ先の画面で確認する。

@@ -463,6 +463,20 @@ struct MapLibreTrainMap: UIViewRepresentable {
                 maximumLongitude = max(maximumLongitude, coordinate.longitude)
             }
 
+            // Several through services span well beyond the metropolitan area.
+            // Fitting every vertex makes the initial map unreadable; start in
+            // central Tokyo and let the user pan to the rest of the routes.
+            if maximumLatitude - minimumLatitude > 1.5 || maximumLongitude - minimumLongitude > 2 {
+                mapView.setCenter(
+                    CLLocationCoordinate2D(latitude: 35.70, longitude: 139.75),
+                    zoomLevel: 10,
+                    animated: hasSetViewport && !reduceMotion
+                )
+                hasSetViewport = true
+                viewportNeedsUpdate = false
+                return
+            }
+
             let bounds = MLNCoordinateBounds(
                 sw: CLLocationCoordinate2D(
                     latitude: minimumLatitude,

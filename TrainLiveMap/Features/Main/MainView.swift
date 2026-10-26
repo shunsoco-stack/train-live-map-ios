@@ -695,7 +695,7 @@ private struct ServiceStatusPanel: View {
     }
 
     private var displayedStatuses: [ServiceStatus] {
-        Array(abnormalStatuses.prefix(3))
+        Array(abnormalStatuses.prefix(1))
     }
 
     var body: some View {
@@ -709,6 +709,8 @@ private struct ServiceStatusPanel: View {
                         .foregroundStyle(.orange)
                 }
                 Spacer()
+                Image(systemName: "chevron.right")
+                    .accessibilityHidden(true)
             }
 
             if abnormalStatuses.isEmpty {
@@ -717,7 +719,7 @@ private struct ServiceStatusPanel: View {
                     systemImage: "checkmark.circle.fill"
                 )
                 .font(RailFont.bold(.subheadline))
-                .foregroundStyle(.green)
+                .foregroundStyle(isStale ? .orange : .green)
             } else {
                 ForEach(displayedStatuses) { status in
                     HStack(alignment: .firstTextBaseline, spacing: 7) {
@@ -737,8 +739,8 @@ private struct ServiceStatusPanel: View {
                             }
                             Text(status.message)
                                 .font(RailFont.bold(.caption))
-                                .lineLimit(3)
-                            Text("\(status.updatedAt.formatted(date: .omitted, time: .shortened)) ・ \(status.sourceLabel ?? "ODPT")")
+                                .lineLimit(2)
+                            Text("\(status.updatedAt.formatted(date: .omitted, time: .shortened)) ・ \(status.dataAccuracy == .estimated ? "列車位置情報からの推定" : (status.sourceLabel ?? "ODPT"))")
                                 .font(RailFont.regular(.caption2))
                                 .foregroundStyle(.secondary)
                         }

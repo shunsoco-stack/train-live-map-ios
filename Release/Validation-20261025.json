@@ -13,6 +13,14 @@
     "iPhoneSE3": {
       "passed": 2,
       "failed": 0
+    },
+    "iPhone17ProMaxFinalLayout": {
+      "passed": 1,
+      "failed": 0
+    },
+    "iPad": {
+      "status": "infrastructure_failure",
+      "reason": "Test runner was killed before establishing its connection; UI tests did not complete."
     }
   },
   "webTests": {
@@ -23,7 +31,10 @@
     "vulnerabilities": 0
   },
   "unsignedArchive": "/private/tmp/TrainLiveMapFinal20261025.xcarchive",
-  "signedArchive": null,
+  "signedArchive": "/private/tmp/TrainLiveMapSignedFinal20261025.xcarchive",
+  "exportedIPA": "Artifacts/20261025/TrainLiveMap-1.1.0-2.ipa",
+  "appStoreConnectAppID": "6826815750",
+  "transporterUpload": "started; delivery result not yet verified",
   "testFlightUploaded": false,
   "appStoreSubmitted": false
 }
