@@ -216,6 +216,51 @@ final class TrainLiveMapUITests: XCTestCase {
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH '東海道線、下り'")).firstMatch.exists)
     }
 
+    /// Opt-in release check. Reads the real backend without submitting reports or
+    /// requesting location/notification permission. Normal CI remains offline.
+    func testLiveBackendMapAndForegroundRecovery() throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["TLM_LIVE_UI_TESTS"] == "1",
+            "Enable explicitly when validating a connected release device."
+        )
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        app.launch()
+
+        let liveBadge = app.descendants(matching: .any)
+            .matching(identifier: "data-source-badge")
+            .matching(NSPredicate(format: "label CONTAINS %@", "ODPTライブ"))
+            .firstMatch
+        XCTAssertTrue(liveBadge.waitForExistence(timeout: 45), app.debugDescription)
+        for attribution in ["OpenFreeMap", "© OpenMapTiles", "© OpenStreetMap"] {
+            XCTAssertTrue(
+                app.descendants(matching: .any)
+                    .matching(NSPredicate(format: "label == %@", attribution))
+                    .firstMatch.exists,
+                "Missing map attribution: \(attribution)"
+            )
+        }
+        let mapImage = XCTAttachment(screenshot: app.screenshot())
+        mapImage.name = "Live backend map"
+        mapImage.lifetime = .keepAlways
+        add(mapImage)
+
+        app.buttons["railway-filter-button"].tap()
+        XCTAssertTrue(app.navigationBars["表示する路線"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["山手線"].exists)
+        app.buttons["完了"].tap()
+        XCTAssertTrue(app.navigationBars["表示する路線"].waitForNonExistence(timeout: 8))
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(liveBadge.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["notification-settings-button"].exists)
+        let resumedImage = XCTAttachment(screenshot: app.screenshot())
+        resumedImage.name = "Live map after foreground recovery"
+        resumedImage.lifetime = .keepAlways
+        add(resumedImage)
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [

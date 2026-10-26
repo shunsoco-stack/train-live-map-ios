@@ -88,7 +88,30 @@
     "build3Install": "succeeded",
     "launch": "Initial CoreDevice 10004; retry launched successfully at 2026-10-27 07:06 JST",
     "observation": "MLNMapView initialized; console observed until configured 45-second timeout",
-    "visualVerification": false,
-    "pushDeliveryVerified": false
+    "visualVerification": true,
+    "pushDeliveryVerified": false,
+    "osVersion": "26.6",
+    "liveBackendUITest": {
+      "name": "testLiveBackendMapAndForegroundRecovery",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "resultBundle": "/private/tmp/TLMLiveDevice20261027.xcresult",
+      "coverage": [
+        "live ODPT source badge",
+        "all three attribution labels",
+        "route selection sheet",
+        "foreground recovery"
+      ],
+      "screenshots": "Artifacts/20261027/DeviceUI"
+    },
+    "visualScope": "Map background, routes/stations/trains, estimates, unofficial label and attribution in two test screenshots",
+    "remainingChecks": [
+      "APNs delivery",
+      "VoiceOver speech",
+      "long-duration memory and battery",
+      "network disconnect/reconnect on hardware",
+      "location permission on hardware"
+    ]
   }
 }

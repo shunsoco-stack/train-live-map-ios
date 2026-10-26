@@ -89,7 +89,7 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - 最終Archive: Artifacts/20261027/TrainLiveMap-1.1.0-3.xcarchive
 - IPA: Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa（Git対象外）
 - ExportOptions: Release/ExportOptions.plist
-- MacとApple認証は復旧済み。iPhone実機は2026-10-27 00:44 JSTのdevicectl確認でavailable (paired)。ビルド3の開発用署名ビルドとインストールは成功。初回起動確認はCoreDevice 10004。07:06 JSTの再試行では起動成功とMLNMapView初期化ログを確認し、45秒の観測中に終了ログなし。実機の目視・操作・APNs受信確認は未完了。
+- MacとApple認証は復旧済み。iPhone実機は2026-10-27 00:44 JSTのdevicectl確認でavailable (paired)。ビルド3の開発用署名ビルドとインストールは成功。初回起動確認はCoreDevice 10004。07:06 JSTの再試行では起動成功とMLNMapView初期化ログを確認し、45秒の観測中に終了ログなし。実機の基本操作と描画は下記の追加テストで確認済み。APNs受信、VoiceOverの実際の読み上げ、長時間のメモリ・バッテリー測定は未完了。
 
 実データの初期表示で広域路線を全体表示するとアイコンが密集したため、広域の複数路線は東京付近から表示するよう調整。運行情報パネルは1件を要約し、全件はタップ先の画面で確認する。
 
@@ -107,3 +107,12 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 
 - 初回配信対象はiPhone・iPad。MacとApple Vision Proの自動配信設定は無効にして保存。
 - APNs専用鍵はSandbox／Production各1個、対象com.shunsoco.trainlivemapだけの作成を所有者へ確認中。Apple画面でSandboxの対象を選択済みだが、保存・登録・鍵作成は未実施。
+
+## 2026-10-27 実機UI確認
+
+- 接続したiPhone 16 Pro Max（iOS 26.6）で `testLiveBackendMapAndForegroundRecovery` が1/1成功、スキップ0。ODPTの本番データ、地図の帰属3件、路線選択シート、バックグラウンド復帰を確認。
+- 実機スクリーンショットを目視確認し、OpenFreeMap背景・駅・路線・列車、推定表示、非公式表記、帰属を確認。朝の列車が多い時間帯では密集するため、路線絞り込み／ズームによる確認が必要。
+- 結果: `/private/tmp/TLMLiveDevice20261027.xcresult`。画像は `Artifacts/20261027/DeviceUI/`（Git対象外）。
+- 実機テストの署名だけを変更した一時コピーを使用。アプリの63ソース／リソースは元とハッシュ一致。既存のアプリ用開発プロファイルとテスト用標準プロファイルを使用し、新規証明書は作成していない。
+- 追加テストは `TLM_LIVE_UI_TESTS=1` をテストランナーの環境に設定したときだけ実行する。投稿、現在地・通知権限要求、Push送信は行わない。通常のテスト実行ではスキップ。
+- APNs鍵作成承認とVercelログインを待つ。審査提出・公開、長時間の電力測定、VoiceOver読み上げ、APNs実受信は未完了。
