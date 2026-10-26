@@ -19,8 +19,17 @@
       "failed": 0
     },
     "iPad": {
-      "status": "infrastructure_failure",
-      "reason": "Test runner was killed before establishing its connection; UI tests did not complete."
+      "status": "passed_on_retry",
+      "basicMapSmoke": {
+        "passed": 1,
+        "resultBundle": "/private/tmp/TrainLiveMapBuild3IPad20261027.xcresult"
+      },
+      "largestDynamicTypeDarkModeNotifications": {
+        "passed": 1,
+        "failed": 0,
+        "resultBundle": "/private/tmp/TrainLiveMapBuild3IPadDynamicRetry20261027.xcresult"
+      },
+      "initialAttempt": "One UI query snapshot timed out; isolated retry passed."
     },
     "iPhone17ProMaxBuild3": {
       "passed": 1,
@@ -39,14 +48,47 @@
   "signedArchive": "Artifacts/20261027/TrainLiveMap-1.1.0-3.xcarchive",
   "exportedIPA": "Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa",
   "appStoreConnectAppID": "6826815750",
-  "transporterUpload": "Build 3 delivered 2026-10-27 00:10 JST; Apple processing",
+  "transporterUpload": "Build 3 delivered 2026-10-27 00:10 JST; processing completed",
   "testFlightUploaded": true,
   "appStoreSubmitted": false,
   "version": "1.1.0",
   "build": 3,
   "appStoreConnectBuilds": {
     "2": "Ready to Submit verified in App Store Connect",
-    "3": "Delivered; processing"
+    "3": "Ready to Submit verified; attached to App Store version 1.1.0"
   },
-  "ageRating": "4+ saved; not Kids category"
+  "ageRating": "4+ saved; not Kids category",
+  "webProduction": {
+    "commit": "896aebeb8c63ee4457770f42ad05548360c3fadf",
+    "vercelStatus": "success",
+    "supportVerified": true,
+    "privacyNativeContentVerified": true
+  },
+  "appStoreSettings": {
+    "price": "JPY 0",
+    "regions": [
+      "Japan"
+    ],
+    "contentRights": "Third-party rights declared after owner approval",
+    "privacyDraft": "Device ID and Other User Content: App Functionality, linked, not tracking",
+    "privacyPublished": false,
+    "platforms": [
+      "iPhone",
+      "iPad"
+    ],
+    "screenshotsUploaded": {
+      "iPhone6.9": 1,
+      "iPhone6.3": 1,
+      "iPad13": 1
+    }
+  },
+  "developmentBuild3": "Signed build succeeded",
+  "physicalDevice": {
+    "model": "iPhone 16 Pro Max",
+    "build3Install": "succeeded",
+    "launch": "Initial CoreDevice 10004; retry launched successfully at 2026-10-27 07:06 JST",
+    "observation": "MLNMapView initialized; console observed until configured 45-second timeout",
+    "visualVerification": false,
+    "pushDeliveryVerified": false
+  }
 }

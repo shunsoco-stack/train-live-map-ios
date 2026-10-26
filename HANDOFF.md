@@ -1,18 +1,18 @@
 # Train Live Map iOS 引き継ぎ
 
-更新日: 2026-10-26。既存iOSプロジェクトを継続し、現行Web APIに合わせてリリース準備を進めています。署名済みIPAを書き出し、Transporterのアップロードを開始しました。転送結果・TestFlight処理完了・App Store公開は未確認です。
+更新日: 2026-10-27。1.1.0(3)の署名付きProduction Archive・IPA作成とアップロードが完了。TestFlightで「提出準備完了」を確認し、App Store版1.1.0へ関連付け済みです。審査提出・公開は未実施です。
 
 ## リポジトリと環境
 
 - iOS: https://github.com/shunsoco-stack/train-live-map-ios
 - iOS作業ブランチ: `release/app-store-readiness`
 - Web API: https://github.com/shunsoco-stack/train-live-map
-- Web作業ブランチ: `feat/native-apns`（独立した変更としてレビュー）
+- Web PR #9: 所有者の明示承認後にmainへマージ、本番反映済み。マージコミット `896aebeb8c63ee4457770f42ad05548360c3fadf`
 - Xcode 26.4、SDK iOS 26.4、Deployment Target iOS 17
 - SwiftUI、MVVM、Repository、async/await、MapLibre Native 6.28.0、SPM
 - プロジェクト正本: `project.yml`。生成済み `TrainLiveMap.xcodeproj` を同梱
 - 確定Bundle ID: `com.shunsoco.trainlivemap`
-- Version 1.1.0、Build 2。Developer Teamは確認済みのLC47V8NZP6
+- Version 1.1.0、Build 3。Developer Teamは確認済みのLC47V8NZP6
 
 ## 実装
 
@@ -50,14 +50,14 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 - 最新のiOS UI Test: 6/6成功、iPhone 17 Pro / iOS 26.4
 - iPhone SE第3世代: スモークと最大文字サイズ／ダークモードの2/2成功
 - 最終地図調整後のiPhone 17 Pro Max: スモーク1/1成功（TrainLiveMapFinalUITests20261025.xcresult）
-- iPad: テストランナー起動接続前の終了で未完了。成功扱いにしない
+- iPadビルド3: 基本地図スモーク成功。最大文字サイズ・ダークモード・通知説明は初回UIスナップショット取得タイムアウト、単独再実行1/1成功。2ケースとも成功結果あり。実データ地図を目視確認済み
 - UI: 初回・路線検索・お気に入り・公式情報・投稿・列車詳細・通知・オフライン・最大文字サイズとダークモード
 - Productionの署名なし最終Archive: 成功、アプリ約20.2MB
 - Productionの署名付き最終ArchiveとIPA書き出し: 成功、IPA約10MB
 - 配布署名のBundle ID／Teamとproduction APNs、get-task-allow=falseを確認
 - アプリとMapLibre双方のPrivacyInfo.xcprivacyがArchiveに存在
 - Web既存＋再開互換テスト: 107/107成功
-- Web APNs検証・通知判定・暗号化テスト: 5/5成功
+- Web APNs検証・通知判定・暗号化・環境別JWTテスト: 9/9成功
 - Web TypeScript/本番ビルド、ESLint: 成功
 - Web本番依存関係: npm audit --omit=devで脆弱性0
 - ローカル配信APIは認証なしGETを401で拒否
@@ -67,13 +67,13 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 
 ## 提出までの残作業
 
-1. 最終版の地図を再目視確認し、iPadテストと実データのストア用スクリーンショットを完成
-2. 接続iPhoneで地図、権限、復帰、通信切替、VoiceOver、メモリ・バッテリーを検証
-3. Transporterで開始した1.1.0(2)の転送結果とTestFlight処理完了を確認
-4. APNs鍵・環境変数・定期実行環境を設定し、開発用端末で登録、受信、解除を検証
-5. Web変更をレビュー・配備し、/supportと更新した/privacyが公開されていることを確認
-6. プライバシー申告をホスティング実設定と照合。ODPT応募予定は所有者確認済み、期限と条件はRelease/Data-License-Review.txtを参照
-7. App Store Connectの年齢制限（途中）、配信国・価格・プライバシー・画像を完成し、最終確認後に審査提出・公開
+1. 接続iPhoneで地図、権限、復帰、通信切替、VoiceOver、メモリ・バッテリーを検証
+2. APNs鍵・環境変数・定期実行環境を設定し、開発用端末で登録、受信、解除を検証。鍵作成・本番通知送信は確認対象
+3. プライバシー申告をホスティング実設定と照合して確定。Vercel接続ツールはプロジェクト参照不可、Chromeログイン待ち
+4. App Store Connectの画像、プライバシー公開、配信対象プラットフォームの最終確認
+5. 所有者の確認後に審査提出し、Apple承認後に公開。審査提出・公開は未承認
+
+ODPTチャレンジ応募予定と第三者コンテンツの権利申告、無料・日本のみ、端末IDの関連付けあり／機能目的／トラッキングなしは所有者承認済み。ODPTの現行期限2027-03-12と条件はRelease/Data-License-Review.txtを参照。
 
 `Release/AppStore-ja.txt` と `Release/Privacy-Inventory.txt` に掲載文・審査メモ・Privacy Nutrition Labels案があります。提出操作と公開は未実施で、Appleの審査結果も未取得です。
 
@@ -86,21 +86,24 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - カテゴリはナビゲーション／旅行。審査後は手動公開に設定済み
 - 配布プロファイル: Train Live Map App Store 20261025（既存配布証明書使用）
 - 開発プロファイル: Train Live Map Development 20261025（既存開発証明書、登録済みiPhone 16 Pro Max使用）
-- 最終Archive: /private/tmp/TrainLiveMapSignedFinal20261025.xcarchive
-- IPA: Artifacts/20261025/TrainLiveMap-1.1.0-2.ipa（Git対象外）
+- 最終Archive: Artifacts/20261027/TrainLiveMap-1.1.0-3.xcarchive
+- IPA: Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa（Git対象外）
 - ExportOptions: Release/ExportOptions.plist
-- 2026-10-26再開時、Macはロック中、iPhoneはdevicectlでunavailable。解除・接続後に実機検証とApple画面確認を再開する
+- MacとApple認証は復旧済み。iPhone実機は2026-10-27 00:44 JSTのdevicectl確認でavailable (paired)。ビルド3の開発用署名ビルドとインストールは成功。初回起動確認はCoreDevice 10004。07:06 JSTの再試行では起動成功とMLNMapView初期化ログを確認し、45秒の観測中に終了ログなし。実機の目視・操作・APNs受信確認は未完了。
 
 実データの初期表示で広域路線を全体表示するとアイコンが密集したため、広域の複数路線は東京付近から表示するよう調整。運行情報パネルは1件を要約し、全件はタップ先の画面で確認する。
 
 
 ## 2026-10-27 更新
 
-- 1.1.0(2)はApp Store ConnectのTestFlightで「提出準備完了」を確認済み。
-- 実データの地図確認で列車が密集していたため、広域路線選択時の初期ズームを12へ変更。推定情報のカードを「公式」と誤解しないよう見出し・平常時の文言を調整し、ビルド3に更新。
-- ビルド3: シミュレータビルド、署名付きProduction Archive、IPA書き出し成功。お気に入り／運行情報UIテスト1/1成功。89件の単体テストと既存UI検証は上記の前ビルドでの結果。
-- 最新成果物: Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa と同名xcarchive（Git対象外）。Transporterで2026-10-27 00:10 JSTのデリバリ済み、Apple処理中を確認。ビルド3の処理完了は未確認。
-- 実データの6.9インチiPhone画像を Release/Screenshots/iPhone-6.9-inch/01-live-map.png（1320×2868）へ保存。App Store Connectへの画像登録とiPad画像は未完了。
-- 年齢制限4+を保存済み。子ども向けカテゴリは選択していない。外部コンテンツの権利保有申告は自動承認レビューが明示承認を要求したため、所有者へ確認中。申告は未保存。
-- Web PR #9にeeda487を追加。Sandbox／ProductionごとのAPNs鍵とJWTキャッシュ分離、設定不備の拒否を実装。Native Pushテスト9/9、型チェック・対象ESLint成功（既存107件と合計116件）。鍵の作成、通知の送信、配備は未実施。
-- Appleのブラウザ認証とTransporter操作は復旧。Vercel連携403／ブラウザ再ログイン待ちは未解消。
+- ビルド3は初期ズーム12へ変更し、推定情報を公式と誤解しないカード文言へ修正。シミュレータビルド、署名付きProduction Archive、IPA書き出し成功。iPhoneのお気に入り／運行情報UIテスト1/1成功。89件の単体テストと既存UI検証は前ビルドでの結果。
+- Transporterで00:10 JSTにビルド3をデリバリ済み。App Store Connectでも処理完了「提出準備完了」を確認し、提出版へ関連付けて保存済み。
+- 実データ画像: iPhone 6.9インチ（1320×2868）、iPhone 6.3インチ（1206×2622）、iPad 13インチ（2064×2752）をRelease/Screenshotsへ保存。App Store Connectへ各1枚登録済み。
+- 年齢制限4+、第三者コンテンツの権利保有、無料、日本のみ配信を保存済み。子ども向けカテゴリは選択していない。
+- プライバシーはOther User ContentとDevice IDを、App Functionality／Linked Yes／Tracking Noとして下書き保存。申告全体の公開は未実施。
+- Web PR #9を承認後にマージ。Vercel本番チェック成功、公開/supportと/privacyのHTTP成功・iOS記載・問い合わせ先を確認。本番通知は無効、送信していない。
+- Web Native Pushテスト9/9、型チェック・対象ESLint成功（既存107件と合計116件）。Sandbox／Production別APNs鍵、JWTキャッシュ分離と設定不備の拒否を含む。鍵の作成は未実施。
+- 証跡画像はGit対象外のArtifacts/20261027へ保存。審査連絡先電話番号をGitに含めない。
+
+- 初回配信対象はiPhone・iPad。MacとApple Vision Proの自動配信設定は無効にして保存。
+- APNs専用鍵はSandbox／Production各1個、対象com.shunsoco.trainlivemapだけの作成を所有者へ確認中。Apple画面でSandboxの対象を選択済みだが、保存・登録・鍵作成は未実施。

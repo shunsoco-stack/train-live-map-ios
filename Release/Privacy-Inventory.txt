@@ -3,7 +3,7 @@ App Privacy申告案（提出前に配信サーバー設定・ホスティング
 対象コード: SwiftUIアプリ、MapLibre 6.28.0、Web側community-reportsと新規APNs API。
 広告SDK、IDFAアクセス、解析SDK、アカウント、氏名、電話番号、決済はアプリに含まれない。
 
-Identifiers / Device ID: 収集あり。投稿用ランダムIDを送信しサーバーでHMAC化。通知有効時はAPNsトークンとインストール識別用秘密値を送信。APNsトークンはサーバーで暗号化し、秘密値はハッシュのみ保存。端末識別子へ関連付くためLinked to UserをYesとする保守的な案。用途App Functionality。不正投稿防止と通知。Trackingなし。
+Identifiers / Device ID: 収集あり。投稿用ランダムIDを送信しサーバーでHMAC化。通知有効時はAPNsトークンとインストール識別用秘密値を送信。APNsトークンはサーバーで暗号化し、秘密値はハッシュのみ保存。端末識別子へ関連付くためLinked to UserをYesとする。所有者承認後、2026-10-27にApp Store Connectの下書きへ保存済み。用途App Functionality。不正投稿防止と通知。Trackingなし。
 User Content / Other User Content: 投稿する路線・状態・遅延分数・投稿時刻。識別子へ関連付く。用途App Functionality。Trackingなし。
 表示路線・お気に入り・通知種別: UserDefaultsで保存。通知対象路線と通知種別は通知設定を有効にした場合に送信。
 Location: アプリは現在地を永続化・当社APIへ送信しない。MapLibreが表示領域のタイルをOpenFreeMapへ要求するため、地図提供者にはIPと要求タイル範囲が伝わる。端末の現在地そのものは渡さない。OpenFreeMapとホスティング側の実際のログ運用を確認し、保持・位置推定の有無に応じて最終申告を確定する。
