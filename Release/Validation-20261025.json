@@ -56,7 +56,7 @@
   "appStoreConnectBuilds": {
     "2": "Ready to Submit verified in App Store Connect",
     "3": "Ready to Submit verified; attached to App Store version 1.1.0",
-    "4": "Transporter: Ready for internal testing. Store-version attachment pending."
+    "4": "Ready for internal testing; attached and saved to App Store version 1.1.0 on 2026-10-28"
   },
   "ageRating": "4+ saved; not Kids category",
   "webProduction": {
@@ -82,7 +82,7 @@
       "iPhone6.3": 1,
       "iPad13": 1
     },
-    "screenshotsBuild4Replacement": "In progress; existing uploaded images are build 3"
+    "screenshotsBuild4Replacement": "iPhone 6.3 and 6.9 replaced; iPad uploaded and processing"
   },
   "developmentBuild3": "Signed build succeeded",
   "physicalDevice": {
@@ -143,7 +143,8 @@
     "signatureVerified": true,
     "apnsRegistrationURL": "",
     "privacyTypes": 4,
-    "privateKeyFiles": 0
+    "privateKeyFiles": 0,
+    "ipaSHA256": "9fada98b228b2dba5cadf0d7600ea7fbf579401cb839da9db6bb8a68491357b4"
   },
   "webInitialReleasePolicyPR": "https://github.com/shunsoco-stack/train-live-map/pull/10"
 }
