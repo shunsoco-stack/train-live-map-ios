@@ -82,7 +82,8 @@
       "iPhone6.3": 1,
       "iPad13": 1
     },
-    "screenshotsBuild4Replacement": "iPhone 6.3 and 6.9 replaced; iPad uploaded and processing"
+    "screenshotsBuild4Replacement": "Verified: one build 4 live-data screenshot each for iPhone 6.3, iPhone 6.9 and iPad 13; old images removed from listing, retained in Apple asset library",
+    "reviewNotes": "Saved: initial release has no Push permission request or APNs registration"
   },
   "developmentBuild3": "Signed build succeeded",
   "physicalDevice": {
@@ -146,5 +147,6 @@
     "privateKeyFiles": 0,
     "ipaSHA256": "9fada98b228b2dba5cadf0d7600ea7fbf579401cb839da9db6bb8a68491357b4"
   },
-  "webInitialReleasePolicyPR": "https://github.com/shunsoco-stack/train-live-map/pull/10"
+  "webInitialReleasePolicyPR": "https://github.com/shunsoco-stack/train-live-map/pull/10",
+  "submissionApproval": "Requested from owner on 2026-10-28; pending"
 }

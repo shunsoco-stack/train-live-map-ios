@@ -146,3 +146,9 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - Web PR #10 updates initial-release support/privacy text and reflects verified Vercel diagnostics. TypeScript, scoped ESLint and Vercel checks passed. https://github.com/shunsoco-stack/train-live-map/pull/10 remains unmerged.
 - Hardware live-backend UI verification passed on build 3. Build 4 hardware retesting, VoiceOver speech and long-duration battery/memory measurements have not been completed.
 - Remaining publication gates: replace the store build/screenshots, merge Web PR #10 after approval, publish privacy answers, submit review and release after Apple approval. Review submission and publication still require the owner's final approval.
+
+## Store preparation complete (2026-10-28)
+
+Build 4 is attached and saved. All three screenshot sizes have been replaced and visually verified. Prior images remain recoverable in the Apple asset library. The four privacy answers and review notes are saved. Final owner approval has been requested together for Web PR #10 production deployment, privacy publication, review submission and automatic release after Apple approval. No review submission or public release has occurred.
+
+iCloud was evicting project files during Git reads; Finder Keep Downloaded is now enabled for this project folder, and Git operations completed.
