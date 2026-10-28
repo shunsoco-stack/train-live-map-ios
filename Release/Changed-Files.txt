@@ -55,5 +55,5 @@ TrainLiveMapUITests/TrainLiveMapUITests.swift
 project.yml
 
 Web release changes (PR #10, merged 806c9c7c290d6b431a7fea48ae3fe039cda2bf73):
-app/privacy/page.tsx
-app/support/page.tsx
+src/app/privacy/page.tsx
+src/app/support/page.tsx
