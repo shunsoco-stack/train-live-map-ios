@@ -1,0 +1,164 @@
+{
+  "sdk": "iOS 26.4",
+  "xcode": "26.4",
+  "unitTests": {
+    "passed": 89,
+    "failed": 0
+  },
+  "uiTests": {
+    "iPhone17Pro": {
+      "passed": 6,
+      "failed": 0
+    },
+    "iPhoneSE3": {
+      "passed": 2,
+      "failed": 0
+    },
+    "iPhone17ProMaxFinalLayout": {
+      "passed": 1,
+      "failed": 0
+    },
+    "iPad": {
+      "status": "passed_on_retry",
+      "basicMapSmoke": {
+        "passed": 1,
+        "resultBundle": "/private/tmp/TrainLiveMapBuild3IPad20261027.xcresult"
+      },
+      "largestDynamicTypeDarkModeNotifications": {
+        "passed": 1,
+        "failed": 0,
+        "resultBundle": "/private/tmp/TrainLiveMapBuild3IPadDynamicRetry20261027.xcresult"
+      },
+      "initialAttempt": "One UI query snapshot timed out; isolated retry passed."
+    },
+    "iPhone17ProMaxBuild3": {
+      "passed": 1,
+      "failed": 0,
+      "resultBundle": "/private/tmp/TrainLiveMapBuild3UITests20261026.xcresult"
+    }
+  },
+  "webTests": {
+    "passed": 116,
+    "failed": 0
+  },
+  "productionDependencyAudit": {
+    "vulnerabilities": 0
+  },
+  "unsignedArchive": "/private/tmp/TrainLiveMapFinal20261025.xcarchive",
+  "signedArchive": "Artifacts/20261027/TrainLiveMap-1.1.0-4.xcarchive",
+  "exportedIPA": "Artifacts/20261027/TrainLiveMap-1.1.0-4.ipa",
+  "appStoreConnectAppID": "6826815750",
+  "transporterUpload": "Build 4 delivered 2026-10-27 08:25 JST; Transporter confirms ready for internal testing on 2026-10-28",
+  "testFlightUploaded": true,
+  "appStoreSubmitted": true,
+  "version": "1.1.0",
+  "build": 4,
+  "appStoreConnectBuilds": {
+    "2": "Ready to Submit verified in App Store Connect",
+    "3": "Ready to Submit verified; attached to App Store version 1.1.0",
+    "4": "Ready for internal testing; attached and saved to App Store version 1.1.0 on 2026-10-28"
+  },
+  "ageRating": "4+ saved; not Kids category",
+  "webProduction": {
+    "commit": "806c9c7c290d6b431a7fea48ae3fe039cda2bf73",
+    "vercelStatus": "success",
+    "supportVerified": true,
+    "privacyNativeContentVerified": true,
+    "initialPushDeferredCopyVerified": true,
+    "diagnosticDisclosureVerified": true,
+    "deploymentURL": "https://vercel.com/shunsoco-stacks-projects/train-live-map/Gnb2p5H8z7yztYPbEC3m6e7kbs79"
+  },
+  "appStoreSettings": {
+    "price": "JPY 0",
+    "regions": [
+      "Japan"
+    ],
+    "contentRights": "Third-party rights declared after owner approval",
+    "privacyDraft": "Published: Device ID, Other User Content, Performance Data, Other Diagnostic Data; App Functionality, linked, not tracking",
+    "privacyPublished": true,
+    "platforms": [
+      "iPhone",
+      "iPad"
+    ],
+    "screenshotsUploaded": {
+      "iPhone6.9": 1,
+      "iPhone6.3": 1,
+      "iPad13": 1
+    },
+    "screenshotsBuild4Replacement": "Verified: one build 4 live-data screenshot each for iPhone 6.3, iPhone 6.9 and iPad 13",
+    "reviewNotes": "Saved: initial release has no Push permission request or APNs registration",
+    "releaseMode": "Automatically release after Apple approval"
+  },
+  "developmentBuild3": "Signed build succeeded",
+  "physicalDevice": {
+    "model": "iPhone 16 Pro Max",
+    "build3Install": "succeeded",
+    "launch": "Initial CoreDevice 10004; retry launched successfully at 2026-10-27 07:06 JST",
+    "observation": "MLNMapView initialized; console observed until configured 45-second timeout",
+    "visualVerification": true,
+    "pushDeliveryVerified": false,
+    "osVersion": "26.6",
+    "liveBackendUITest": {
+      "name": "testLiveBackendMapAndForegroundRecovery",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "resultBundle": "/private/tmp/TLMLiveDevice20261027.xcresult",
+      "coverage": [
+        "live ODPT source badge",
+        "all three attribution labels",
+        "route selection sheet",
+        "foreground recovery"
+      ],
+      "screenshots": "Artifacts/20261027/DeviceUI"
+    },
+    "visualScope": "Map background, routes/stations/trains, estimates, unofficial label and attribution in two test screenshots",
+    "remainingChecks": [
+      "APNs delivery",
+      "VoiceOver speech",
+      "long-duration memory and battery",
+      "network disconnect/reconnect on hardware",
+      "location permission on hardware"
+    ]
+  },
+  "apnsProvisioning": {
+    "ownerApproved": true,
+    "sandboxKeyCreated": true,
+    "productionKeyCreated": true,
+    "restriction": "Topic Specific: com.shunsoco.trainlivemap only",
+    "privateKeysOutsideRepository": true,
+    "fileMode": "0600",
+    "keyValidation": "Both keys valid",
+    "vercelStored": true,
+    "sandboxDeliveryVerified": false,
+    "productionPushSent": false,
+    "deploymentPending": false,
+    "initialRelease": "Push notifications deferred by owner; delivery disabled"
+  },
+  "build4Tests": {
+    "passed": 95,
+    "failed": 0,
+    "skipped": 1,
+    "unitTests": 89,
+    "uiTests": 6,
+    "resultBundle": "/private/tmp/TrainLiveMapBuild4Tests20261027.xcresult",
+    "skippedTest": "Opt-in physical-device live-backend test"
+  },
+  "build4ArtifactChecks": {
+    "signatureVerified": true,
+    "apnsRegistrationURL": "",
+    "privacyTypes": 4,
+    "privateKeyFiles": 0,
+    "ipaSHA256": "9fada98b228b2dba5cadf0d7600ea7fbf579401cb839da9db6bb8a68491357b4"
+  },
+  "webInitialReleasePolicyPR": "https://github.com/shunsoco-stack/train-live-map/pull/10",
+  "submissionApproval": "Owner explicitly approved Web PR #10 production deployment, privacy publication, review submission and automatic release after approval on 2026-10-28",
+  "appStoreSubmission": {
+    "id": "53d2a08b-c657-4d71-b790-81080bcd00d7",
+    "submittedAt": "2026-10-28T16:50:00+09:00",
+    "status": "Waiting for Review",
+    "build": "1.1.0 (4)",
+    "automaticRelease": true,
+    "publicDownloadVerified": false
+  }
+}

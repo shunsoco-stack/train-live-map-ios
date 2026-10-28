@@ -122,7 +122,7 @@ struct TrainLocation: Codable, Identifiable, Equatable, Sendable {
     let longitude: Double
     let delayMinutes: Int
     let speedKmh: Double
-    let status: TrainStatus
+    var status: TrainStatus
     let lastUpdatedAt: Date
     let stoppedSince: Date?
     let dataAccuracy: DataAccuracy
@@ -229,6 +229,9 @@ struct ServiceStatus: Codable, Identifiable, Equatable, Sendable {
     let updatedAt: Date
     let dataAccuracy: DataAccuracy
 
+    var sourceLabel: String? = nil
+    var sourceUrl: String? = nil
+
     var id: String { lineId }
 }
 
@@ -266,12 +269,19 @@ enum RailwayKind: String, Codable, Sendable {
     case service
 }
 
+struct RailwayStation: Codable, Identifiable, Equatable, Sendable {
+    let id: String
+    let name: String
+    let position: MapCoordinate
+}
+
 struct RailwayMapLine: Codable, Identifiable, Equatable, Sendable {
     let id: String
     let odptId: String
     let name: String
     let color: String
     let coordinates: [[MapCoordinate]]
+    var stations: [RailwayStation]? = nil
 }
 
 struct RailwayFilterOption: Codable, Identifiable, Equatable, Sendable {

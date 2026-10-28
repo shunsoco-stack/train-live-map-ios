@@ -91,3 +91,13 @@ final class NWPathConnectivityMonitor: NetworkConnectivityMonitoring,
         lock.unlock()
     }
 }
+
+struct UITestOfflineConnectivityMonitor: NetworkConnectivityMonitoring {
+    let currentStatus = NetworkConnectivityStatus.offline
+    func statusUpdates() -> AsyncStream<NetworkConnectivityStatus> {
+        AsyncStream { continuation in
+            continuation.yield(.offline)
+            continuation.finish()
+        }
+    }
+}

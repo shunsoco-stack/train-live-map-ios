@@ -115,9 +115,20 @@ final class MainViewModel: ObservableObject {
             return []
         }
         let visibleIDs = preferences.effectiveVisibleLineIDs
-        return trainsResponse?.trains.filter {
-            visibleIDs.contains($0.lineId)
-        } ?? []
+        let suspendedIDs: Set<String> = serviceErrorMessage == nil
+            && serviceStatusResponse?.isMock == false && serviceStatusResponse?.fallback == false
+            ? Set((serviceStatusResponse?.allStatuses ?? [])
+                .filter { ServiceStatusLogic.confirmsSuspension($0) }.map(\.lineId)) : []
+        var seen = Set<String>()
+        return (trainsResponse?.trains ?? []).filter {
+            visibleIDs.contains($0.lineId) && $0.coordinate.isFinite
+                && (-90...90).contains($0.latitude) && (-180...180).contains($0.longitude)
+                && seen.insert($0.id).inserted
+        }.map { train in
+            var displayed = train
+            if suspendedIDs.contains(train.lineId) { displayed.status = .suspended }
+            return displayed
+        }
     }
 
     /// Whether a user-initiated retry can issue a train request right now.
@@ -470,7 +481,8 @@ final class MainViewModel: ObservableObject {
     func submitCommunityReport(
         lineID: String,
         status: CommunityReportStatus,
-        delayMinutes: Int?
+        delayMinutes: Int?,
+        isResumption: Bool = false
     ) async -> Bool {
         communitySuccessMessage = nil
         guard !isSubmittingCommunityReport else {
@@ -482,7 +494,7 @@ final class MainViewModel: ObservableObject {
                 "オフラインのため、接続が戻るまで投稿を送信しません。"
             return false
         }
-        guard let vote = CommunityReportLogic.validatedVote(
+        guard var vote = CommunityReportLogic.validatedVote(
             lineID: lineID,
             status: status,
             delayMinutes: delayMinutes
@@ -490,6 +502,8 @@ final class MainViewModel: ObservableObject {
             communityErrorMessage = "投稿内容を確認してください。"
             return false
         }
+
+        if isResumption && status == .onTime { vote.event = "resumed" }
 
         guard preferences.reporterIDIsSecurelyStored,
               CommunityReporterIDValidator.isValid(preferences.reporterID) else {

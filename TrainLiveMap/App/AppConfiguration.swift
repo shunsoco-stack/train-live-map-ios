@@ -64,7 +64,7 @@ struct AppConfiguration: Equatable {
     }
 
     static func validatedNativeAPNSEndpoint(_ url: URL?) -> URL? {
-        guard isSecureHTTPSURL(url), let url else {
+        guard isSecureHTTPSURL(url), let url, url.query == nil, url.fragment == nil else {
             return nil
         }
 

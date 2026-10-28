@@ -15,6 +15,7 @@ struct NotificationSettingsSheet: View {
         NavigationStack {
             List {
                 explanationSection
+                notificationTypesSection
                 authorizationSection
                 routeSection
                 backendSection
@@ -57,14 +58,13 @@ struct NotificationSettingsSheet: View {
     private var explanationSection: some View {
         Section {
             Label(
-                "運転見合わせの可能性をお知らせ",
+                "お気に入り路線の変化をお知らせ",
                 systemImage: "bell.badge.fill"
             )
             .font(RailFont.extraBold(.headline))
             .foregroundStyle(RailTheme.accent)
             Text(
-                "通知対象の路線で、直近5分に異なる利用者から見合わせ報告が3件以上、"
-                    + "かつ全報告の60%以上になった場合などに通知します。"
+                "選んだ路線の公式な運転見合わせ・運転再開をお知らせします。利用者からの報告も任意で追加できます。"
             )
             .font(RailFont.regular(.footnote))
             Text(
@@ -72,6 +72,19 @@ struct NotificationSettingsSheet: View {
                     + "必ず公式運行情報をご確認ください。"
             )
             .font(RailFont.bold(.footnote))
+        }
+    }
+
+    private var notificationTypesSection: some View {
+        Section("受け取る通知") {
+            Toggle("通知をオンにする", isOn: $preferences.notificationSettings.enabled)
+                .accessibilityIdentifier("notification-enabled-toggle")
+            Toggle("利用者報告も含める", isOn: $preferences.notificationSettings.includeCommunity)
+            Text(preferences.notificationSettings.includeCommunity ? "公式情報と利用者の報告を区別して通知します。" : "公式情報のみ通知します。")
+                .font(.footnote).foregroundStyle(.secondary)
+            Toggle("運転見合わせ", isOn: $preferences.notificationSettings.suspension)
+            Toggle("運転再開", isOn: $preferences.notificationSettings.resumption)
+            Toggle("遅延通知", isOn: $preferences.notificationSettings.delay)
         }
     }
 
@@ -149,7 +162,7 @@ struct NotificationSettingsSheet: View {
                 }
                 .tint(RailTheme.accent)
                 .accessibilityLabel(
-                    "\(option.name)の運転見合わせ可能性通知"
+                    "\(option.name)の運行情報通知"
                 )
             }
         } header: {
@@ -167,22 +180,17 @@ struct NotificationSettingsSheet: View {
         Section("配信状態") {
             if notificationManager.backendConfigured {
                 Label(
-                    "APNs端末登録バックエンドが設定されています。",
+                    "通知サービスに接続できます。",
                     systemImage: "server.rack"
                 )
                 .foregroundStyle(.green)
             } else {
                 Label(
-                    "APNs端末登録先が未設定のため、通知許可と路線設定のみ保存されます。",
+                    "通知サービスは準備中です。路線と通知の種類はこの端末に保存できます。",
                     systemImage: "server.rack"
                 )
                 .foregroundStyle(.orange)
-                Text(
-                    "App Store公開前に、端末トークン・購読路線を受け付ける"
-                        + "APNsバックエンドURLを設定してください。"
-                )
-                .font(RailFont.regular(.footnote))
-                .foregroundStyle(.secondary)
+
             }
 
             Button(role: .destructive) {

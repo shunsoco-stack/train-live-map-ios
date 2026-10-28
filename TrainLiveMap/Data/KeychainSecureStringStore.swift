@@ -9,6 +9,7 @@ protocol SecureStringStoring: Sendable {
 
 enum SecureStorageKey {
     static let communityReporterID = "community-reporter-id"
+    static let apnsInstallationSecret = "apns-installation-secret"
     static let apnsDeviceToken = "apns-device-token"
 }
 

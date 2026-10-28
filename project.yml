@@ -11,17 +11,14 @@ options:
 configs:
   Debug: debug
   Release: release
+  Development: debug
+  Staging: release
+  Production: release
 
 packages:
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution.git
     exactVersion: 6.28.0
-  GoogleMobileAds:
-    url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
-    exactVersion: 13.7.0
-  GoogleUserMessagingPlatform:
-    url: https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git
-    exactVersion: 3.1.0
 
 settings:
   base:
@@ -46,7 +43,10 @@ targets:
         buildPhase: resources
     configFiles:
       Debug: Config/Debug.xcconfig
-      Release: Config/Release.xcconfig
+      Release: Config/Production.xcconfig
+      Development: Config/Development.xcconfig
+      Staging: Config/Staging.xcconfig
+      Production: Config/Production.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shunsoco.trainlivemap
@@ -59,16 +59,12 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: false
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: ""
+        DEVELOPMENT_TEAM: LC47V8NZP6
         CODE_SIGN_ENTITLEMENTS: TrainLiveMap/TrainLiveMap.entitlements
         OTHER_LDFLAGS: "$(inherited) -ObjC"
     dependencies:
       - package: MapLibre
         product: MapLibre
-      - package: GoogleMobileAds
-        product: GoogleMobileAds
-      - package: GoogleUserMessagingPlatform
-        product: GoogleUserMessagingPlatform
 
   TrainLiveMapTests:
     type: bundle.unit-test
@@ -119,4 +115,4 @@ schemes:
     run:
       config: Debug
     archive:
-      config: Release
+      config: Production

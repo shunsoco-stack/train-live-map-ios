@@ -1,429 +1,162 @@
 # Train Live Map iOS 引き継ぎ
 
-## 現在の状態
-
-`Train Live Map / JR東日本・関東版（非公式）`のネイティブiOS実装です。
-SwiftUI、MapLibre、4種のVercel API、端末キャッシュ、路線設定、列車補間、
-利用者投稿、APNsクライアント、AdMob／UMP、Unit／UI Testまで実装済みです。
-
-既存Web版`shunsoco-stack/train-live-map`は型とAPI仕様の確認にだけ使用し、変更して
-いません。iOSコードは別リポジトリ`shunsoco-stack/train-live-map-ios`だけで
-管理します。`baobao-privacy-policy`にも変更を加えません。
-
-## 製品情報
-
-| 項目 | 値 |
-| --- | --- |
-| アプリ名 | Train Live Map |
-| エディション | JR東日本・関東版（非公式） |
-| App Store掲載名候補 | Train Live Map - JR東日本 関東版 |
-| Bundle ID | `com.shunsoco.trainlivemap` |
-| Deployment Target | iOS 17.0 |
-| Marketing Version | 1.1.0 |
-| Build Number | 1 |
-| 問い合わせ | `train-live-map-support@gmail.com` |
-| API Base URL | `https://train-live-map.vercel.app` |
-
-Apple Developer Team、署名、Release用外部IDはリポジトリへ固定していません。
-
-## プロジェクト管理
-
-`project.yml`がXcodeプロジェクト設定の正本です。ターゲット、Build Settings、
-Swift Packageを変えた場合:
-
-```sh
-xcodegen generate
-git add project.yml TrainLiveMap.xcodeproj
-```
-
-パッケージは次のバージョンへ固定しています。
-
-- MapLibre Native 6.28.0
-- Google Mobile Ads 13.7.0
-- Google User Messaging Platform 3.1.0
-
-## 実装責務
-
-- `TrainLiveMapApp`: 依存生成、scene phase、ポーリング開始／停止
-- `AppConfiguration`: Info.plistへ展開されたxcconfig値の正規化
-- `MainView`: メイン地図、コンパクトパネル、各Sheetへの導線
-- `MainViewModel`: キャッシュ復元、4 API更新、ポーリング、表示用絞り込み
-- `TrainRepository`: UIとAPI／キャッシュを分離
-- `URLSessionTrainAPIService`: Vercel APIのGET／POST、HTTP／JSON検証
-- `FileResponseCache`: 4レスポンスのApplication Support保存
-- `UserPreferences`: 表示、お気に入り、通知対象、投稿時刻
-- Reporter IDストア: ランダム端末IDのKeychain保存と旧UserDefaults値の安全な移行
-- `RailwaySelectionLogic`: APIカテゴリごとの初期1路線、選択中だけの運行情報
-- `ServiceStatusLogic`: ODPT文面優先、2分鮮度、列車遅延による補完と重大判定
-- `TrainNumberSearchLogic`: 表示中の最新列車だけを対象にした番号前方一致検索
-- `CommunityReportLogic`: 30分集計、中央値、重大度tie-break、通知閾値判定
-- `TrainMotionEngine`: routeSegment、線路投影、区間内補間、Reduce Motion
-- `MapLibreTrainMap`: 路線casing、ラベル、古いlayer削除、自動viewport
-- `TrainIconView`: 路線色、上下文字、顔、涙、遅延／見合わせ表示
-- `NotificationManager`: 権限、APNs token、購読同期、通知deep link
-- `AdManager`: UMP同意、SDK初期化、プライバシー設定
-
-依存方向は`View → ViewModel → Repository → APIClient → Web API`です。
-
-## API
-
-アプリが直接呼ぶのは次だけです。
-
-- `GET /api/trains`
-- `GET /api/service-status`
-- `GET /api/railways`
-- `GET /api/community-reports`
-- `POST /api/community-reports`
-
-ODPTへ直接アクセスするコードを追加しないでください。`ODPT_ACCESS_TOKEN`を
-アプリ、Info.plist、xcconfig、ログ、Git履歴へ入れないでください。
-
-`API_BASE_URL`はhostを持つ`https` URLだけを許可します。`http`へフォールバック
-したり、ATS例外を追加したりしないでください。Community ReportのPOSTは
-`Content-Type: application/json`と`X-Community-Reporter`が必須です。Reporter IDは
-Keychainのランダム値を使用し、ヘッダーや本文をログへ出力しません。Keychain保存を
-確認できない場合は投稿をfail-closedで送信しません。
-
-`GET /api/trains`と`GET /api/service-status`には選択中の
-`/api/railways.options[].id`を昇順・重複なしで連結し、
-`?lines=tokaido,yamanote`として渡します。0路線時は要求を送りません。IDは
-`^[a-z0-9-]{1,64}$`、最大44路線、値全体1,024文字以内です。
-`serviceStatuses`が存在するときは空配列も正式な結果であり、legacyの単数
-`serviceStatus`へ戻してはいけません。
-
-起動時は、保存済み`/api/railways`キャッシュをUI復元に使いつつ、列車・運行情報の
-選択路線ポーリングを開始する前にカタログを1回再取得します。成功時はサーバーの最新
-`options`へ選択を整合し、失敗時はキャッシュを表示用フォールバックとして維持します。
-キャッシュもない場合は選択路線ポーリングを開始せず、単一の空状態から手動再試行できます。
-
-Webバックエンドの`400`、`403`、`413`、`415`、`429`、`503`は個別に扱います。
-路線APIの`400`は選択IDが変わるまで再送せず、`429`は`Retry-After`
-（delta-secondsまたはHTTP-date）まで、`503`は`Retry-After`または次の通常周期まで
-再送しません。処理中の同一要求、連打、再帰的な自動リトライは禁止です。
-
-`ODPT_ACCESS_TOKEN`、Redis URL／token、`VAPID_PRIVATE_KEY`、
-`REPORTER_HASH_SALT`、legacy fallbackの`COMMUNITY_REPORT_HMAC_SECRET`は
-サーバー専用です。クライアント設定、バイナリ、ログ、Gitへ含めません。
+更新日: 2026-10-28 16:50 JST。初回Pushなしの1.1.0(4)をApple審査へ提出済みで、状態は「審査待ち」です。所有者承認に基づき、無料・日本のみ・iPhone/iPad・審査承認後の自動公開を設定済み。一般ダウンロードはまだ未確認で、目標達成とはしていません。
 
-2026-07-30の本番API確認:
+## リポジトリと環境
 
-- trains: 最終確認時251件、`source=odpt`、`isMock=false`、`fallback=false`
-- railways: 36形状、41選択肢、40選択可能、7カテゴリ
-- service-status: 36路線、`source=odpt`、`fallback=false`
-- community-reports: 30分窓、`votingEnabled=true`、`persistent=true`
+- iOS: https://github.com/shunsoco-stack/train-live-map-ios
+- iOS作業ブランチ: `release/app-store-readiness`
+- Web API: https://github.com/shunsoco-stack/train-live-map
+- Web PR #9: 所有者の明示承認後にmainへマージ、本番反映済み。マージコミット `896aebeb8c63ee4457770f42ad05548360c3fadf`
+- Xcode 26.4、SDK iOS 26.4、Deployment Target iOS 17
+- SwiftUI、MVVM、Repository、async/await、MapLibre Native 6.28.0、SPM
+- プロジェクト正本: `project.yml`。生成済み `TrainLiveMap.xcodeproj` を同梱
+- 確定Bundle ID: `com.shunsoco.trainlivemap`
+- Version 1.1.0、Build 4。Developer Teamは確認済みのLC47V8NZP6
 
-本番APIの内容は変化するため、固定件数をアプリロジックへ使わないでください。
+## 実装
 
-### APIモデル更新時
+地図はOpenFreeMap Positronを読み込みます。失敗時は背景色#E8EAEDのローカルスタイルへフォールバックし、路線・駅・列車を維持します。OpenFreeMap、OpenMapTiles、OpenStreetMapの帰属リンクを常時表示します。CARTOタイルは使いません。
 
-次を同時に確認します。
+駅名・駅イラスト、路線色、路線名、列車の顔・方向・遅延表示、線路上の位置補間、重なりオフセットを実装。推定位置・モック・古い情報を区別します。開発用モックはUIテスト時だけ使い、画面にも明記します。
 
-1. 既存Web版の`src/types`と`src/app/api`
-2. 本番レスポンス
-3. `TrainLiveMap/Domain`
-4. `TrainLiveMapTests/Fixtures`
-5. `APIJSONDecodingTests`
+路線検索、エリア分類、お気に入り、絞り込み、全選択・解除をUserDefaultsで保存。初回は各方面の先頭の利用可能路線だけを選択。列車位置対象外路線を生成しません。
 
-2026-08-01時点のWeb版では、`/api/community-reports`にJSON限定、16KiB上限、
-Reporter／接続元単位の回数制限が実装されています。エラー本文は`{ "error": "..." }`、
-`429`の`Retry-After`は秒数です。バックエンド変更時はWeb版`origin/main`とVercelへ
-実際にデプロイされているソースの一致を先に確認してください。
+公式情報を独立したシートで確認でき、提供元と更新時刻を表示します。新鮮な公式の全線見合わせは列車の見合わせ状態にも反映します。一部区間の見合わせで全列車を停止扱いにせず、再開見込みを再開済みと判定しません。
 
-## 対象路線と形状の注意
+利用者投稿には平常・遅れ・大幅遅延・見合わせ・再開を用意。再開は既存APIのon-time票に任意のeventを追加する互換方式です。投稿は公式情報と分け、匿名のランダム識別子をKeychainへ保存して送信します。サーバーと端末の両方で連続投稿を制限します。
 
-路線選択肢は`options.available`と`coverage`を優先します。2026-07-30時点の
-選択対象はREADME記載の40路線です。上野東京ライン、相模線、鶴見線、八高線、
-南武支線は選択対象外です。
+所有者の選択により初回はPush通知なし。通知ボタンを非表示にし、通知権限要求・APNs端末登録を行いません。通知設定・登録解除・Keychainの実装は将来用に保持します。APNS_REGISTRATION_URLは空、サーバーの配信ゲートはfalseです。
 
-同時点で、APIは信越本線、烏山線、日光線、両毛線、小海線、水郡線、水戸線を
-選択可能として返しますが、`lines`には同IDの全線形状がありません。この場合、
-列車の`routeSegment`または座標を利用できても、全線ポリラインは描画できません。
-推測形状をiOS側へ固定追加せず、バックエンドの`lines`拡充を優先してください。
+広告SDKと広告ID・SKAdNetwork設定は除去済み。ATT・広告配信・解析SDKはありません。位置情報はボタン操作後の使用中許可のみで、アプリのサーバーへ送信しません。
 
-逆に`lines`へ相模線、鶴見線、八高線の形状が含まれても、利用可能な`options`が
-ないため選択画面へ出しません。
+## APIと秘密情報
 
-## 更新とキャッシュ
+既存の `/api/railways`、`/api/trains?lines=...`、`/api/service-status?lines=...`、`/api/community-reports` を使用します。型はWebコードと実際の本番レスポンスを照合しました。iOSにODPT_ACCESS_TOKENやサーバー秘密情報を埋め込みません。HTTPSのみ、ATS例外なし。OSLogにはHTTPステータスだけを記録します。
 
-| データ | 間隔 |
-| --- | --- |
-| 列車 | 10秒 |
-| 公式運行情報 | 10秒 |
-| 路線 | 起動時 |
-| みんなの運行情報 | 10秒 |
+Web側の別変更で `/api/apns/devices`（POST/DELETE）と `/api/apns/dispatch`（認証付きGET）を追加。AES-256-GCM、所有者ハッシュ、Redisの原子的更新・回数制限、180日失効、無効トークン削除、状態変化・利用者報告急増の判定を実装しました。詳細はWebの `docs/native-apns.md`。
 
-バックグラウンドでは全ポーリングと補間を止め、復帰時に即時更新します。
+本番Vercelの環境変数名を確認したところAPNs設定は未提供でした。APNS_REGISTRATION_URLは空のままで、配信は既定で無効です。APNs専用鍵2個は所有者の明示承認後に作成済み。VercelへのSecret保存は完了。初回公開は所有者指定でPush通知なし。本番Push送信・本番データ削除はしていません。
 
-Application Support:
+## 環境の切替
 
-```text
-TrainLiveMap/Cache/
-├── trains.json
-├── service-status.json
-├── railways.json
-└── community-reports.json
-```
+Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、Release/ArchiveはProductionを使用します。Staging専用URLは未提供のため現状は本番読み取りAPIです。実環境URLを上書きしてください。
 
-通信失敗時はキャッシュを消さず、更新時刻、エラー、再試行を維持します。オンライン中の
-一時的なAPI失敗では最後の成功位置を「古いデータ」と明示して、地図、列車番号検索、
-詳細に保持します。オフライン検知時だけ過去座標を現在位置として扱わず列車マーカーと
-検索／詳細を即座に隠し、復帰後の成功レスポンスで再表示します。
-停止時間表示だけを1秒ごとに局所更新し、画面全体は1秒周期で更新しません。
-キャッシュ保存失敗は有効なネットワークデータを無効化しません。
-
-## UserDefaults
-
-- `train-live-map.visible-line-ids`
-- `train-live-map.favorite-line-ids`
-- `train-live-map.notification-line-ids`
-- `train-live-map.favorites-only`
-- `train-live-map.visibility-initialized`
-- `train-live-map.community-submission-dates`
-
-初回だけAPIカテゴリごとの利用可能な先頭1路線を選び、以後は保存値を復元します。
-APIから消えたIDは`reconcile`で表示／お気に入り／通知対象から除外します。
-
-Reporter IDは`^[A-Za-z0-9_-]{12,100}$`に適合するランダムUUID由来で、Keychainへ保存します。旧版の
-`train-live-map.community-reporter-id`がUserDefaultsにあれば、形式を検証して
-Keychainへ一度だけ移行し、旧値を削除します。氏名、メール、位置情報などの個人情報は
-保存しません。
-
-## 列車位置と表示
-
-表示位置はGPS現在地と断定しません。画面には
-`ODPTライブ（位置は駅間推定）`を表示し、詳細で`actual`／`estimated`／`mock`を
-区別します。
-
-列車番号検索は表示中かつ最新の列車だけを対象に、trim済み・大文字小文字を無視した
-前方一致で最大5件を返します。選択時は状態フィルターを解除して対象markerを表示し、
-地図を最低zoom 12以上へ移動して詳細Sheetを開きます。凡例では列車状態、上り／下り、
-実データ／推定／モックと、GPSの正確な位置ではないことを説明します。0件の状態
-フィルターは無効化し、路線0件・列車0件・絞り込み0件は同じ単一empty-state面へ出します。
+`Config/Signing.local.xcconfig`、`Config/Secrets.xcconfig` はGit対象外。Apple Teamは確認済み。秘密鍵をxcconfigへ保存してはいけません。
 
-現在地ボタンはユーザーがタップした時だけ`When In Use`権限を要求し、Core Locationの
-one-shot結果をMapLibreのカメラ移動にだけ使用します。座標は永続化せず、APIや通知登録、
-利用者投稿へ送信しません。`showsUserLocation`は無効のままで継続追跡せず、バックグラウンド
-遷移時は取得中リクエストを通知なしで中止します。Reduce Motion時はカメラ移動を
-アニメーションしません。
+## 検証済み
 
-位置更新の優先順位:
+- 最新のiOS Unit Test: 89/89成功
+- 最新のiOS UI Test: 6/6成功、iPhone 17 Pro / iOS 26.4
+- iPhone SE第3世代: スモークと最大文字サイズ／ダークモードの2/2成功
+- 最終地図調整後のiPhone 17 Pro Max: スモーク1/1成功（TrainLiveMapFinalUITests20261025.xcresult）
+- iPadビルド3: 基本地図スモーク成功。最大文字サイズ・ダークモード・通知説明は初回UIスナップショット取得タイムアウト、単独再実行1/1成功。2ケースとも成功結果あり。実データ地図を目視確認済み
+- UI: 初回・路線検索・お気に入り・公式情報・投稿・列車詳細・通知・オフライン・最大文字サイズとダークモード
+- Productionの署名なし最終Archive: 成功、アプリ約20.2MB
+- Productionの署名付き最終ArchiveとIPA書き出し: 成功、IPA約10MB
+- 配布署名のBundle ID／Teamとproduction APNs、get-task-allow=falseを確認
+- アプリとMapLibre双方のPrivacyInfo.xcprivacyがArchiveに存在
+- Web既存＋再開互換テスト: 107/107成功
+- Web APNs検証・通知判定・暗号化・環境別JWTテスト: 9/9成功
+- Web TypeScript/本番ビルド、ESLint: 成功
+- Web本番依存関係: npm audit --omit=devで脆弱性0
+- ローカル配信APIは認証なしGETを401で拒否
+- Web MapLibre v6のWorker修正後、背景地図・駅・列車・詳細を目視確認
 
-1. `routeSegment.coordinates`
-2. `routeSegment.fromFraction`／`toFraction` + 路線ポリライン
-3. APIの緯度経度を路線ポリラインへ投影
+テスト成果物は `/private/tmp/TrainLiveMapTests20261025-C.xcresult` と `/private/tmp/TrainLiveMapUITests20261025-D.xcresult`。一時ディレクトリなので長期保管先ではありません。
 
-停止中、見合わせ中、バックグラウンド、Reduce Motion時は補間しません。
-区間終端や次駅を越えて外挿せず、次スナップショットが来る前に停止します。
+## 公開までの残作業
 
-## みんなの運行情報
+1. Appleの審査結果を確認。指摘があれば対応し、承認後の自動公開と日本のApp Storeでの一般ダウンロードを確認する
+2. 実機のVoiceOver音声、長時間メモリ・バッテリー、通信切替、位置情報権限は追加確認項目。地図描画・復帰はビルド3で確認済み。10月28日の接続端末はunavailableで、ビルド4の実機再確認は未実施
 
-クライアント側でも次を検証します。
+提出ID: `53d2a08b-c657-4d71-b790-81080bcd00d7`。プライバシー4種類は公開済み。Web PR #10は承認後にマージし、Vercel本番デプロイ成功。公開support/privacyページでも初回Pushなし・診断ログの説明を確認済み。
 
-- 遅延分数は1〜120
-- 30分以内だけを集計
-- 遅延分数は中央値
-- 同数は`運転見合わせ > 遅延 > 平常`
-- APIの`cooldownSeconds`中は同一路線への再投稿を止める
+Pushは所有者指定で初回対象外。鍵のVercel保存は完了済みだが、定期実行・端末配信検証・有料契約は行わない。
 
-バックエンド側の入力検証、Reporter単位レート制限、永続化を必ず維持してください。
-公式情報と利用者投稿はUIでもモデルでも分離しています。
+ODPTチャレンジ応募予定と第三者コンテンツの権利申告、無料・日本のみ、端末IDの関連付けあり／機能目的／トラッキングなしは所有者承認済み。ODPTの現行期限2027-03-12と条件はRelease/Data-License-Review.txtを参照。
 
-POSTは常にJSONで、KeychainのReporter IDを`X-Community-Reporter`へ設定します。
-`403`はサーバー拒否、`413`は本文過大、`415`はJSON形式不一致として表示し、
-`429`では`Retry-After`まで同一路線を再送できない状態にします。
+`Release/AppStore-ja.txt` と `Release/Privacy-Inventory.txt` に掲載文・審査メモ・Privacy Nutrition Labels案があります。提出操作と公開は未実施で、Appleの審査結果も未取得です。
 
-## APNsバックエンドの残作業
-
-iOSクライアント側はHTTPSの登録／解除に対応しますが、現行Webバックエンドには
-APNs端末登録／配信処理がありません。`APNS_REGISTRATION_URL`には次を受ける
-HTTPS `POST`を用意します。
-
-```json
-{
-  "deviceToken": "<hex APNs token>",
-  "lineIds": ["tokaido", "yamanote"],
-  "platform": "ios",
-  "bundleId": "com.shunsoco.trainlivemap"
-}
-```
-
-購読全解除または通知許可無効時のHTTPS `DELETE`は次を受け、該当tokenの購読情報を
-冪等に削除します。
-
-```json
-{
-  "deviceToken": "<hex APNs token>",
-  "platform": "ios",
-  "bundleId": "com.shunsoco.trainlivemap"
-}
-```
-
-`Content-Type`はどちらも`application/json`です。Web版の`/api/push/config`と
-`/api/push/subscriptions`はWeb Pushのendpoint／p256dh／auth鍵を受けるブラウザ専用
-APIなので、iOSから呼ばず、APNs tokenを送信しないでください。
-
-必要なサーバー責務:
-
-- tokenと購読路線のupsert／解除／失効token削除
-- `updatedAt`基準でPush情報を最大180日だけ保持し、期限切れを削除
-- 通知解除のDELETEでサーバー側購読情報を即時削除
-- APNs provider tokenまたは証明書の安全な保管
-- 直近5分、異なるReporterの最新票だけを1票として集計
-- 見合わせ3件以上かつ60%以上
-- 前5分の見合わせ票が多い場合は2倍以上（最低でも前窓+2件）
-- 路線別クールダウンと通知重複防止
-- お気に入り／通知登録路線だけへ送信
-- payloadの`userInfo.lineId`
-- 「可能性」「利用者からの報告」「公式情報をご確認ください」の文言
-
-APNs key、Team ID、Key IDはGitへ保存せず、Vercel等のSecretへ設定します。
-アプリ内プライバシー表示には、Push情報が最終更新から最大180日保持され、通知解除時に
-サーバーから削除されることを明記します。
-
-## AdMob／UMP
-
-DebugはGoogle公式テストIDだけを使用します。Release用:
-
-```sh
-cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
-```
-
-設定項目:
-
-- `ADMOB_APP_ID`
-- `ADMOB_BANNER_UNIT_ID`
-- 任意の`APNS_REGISTRATION_URL`
-
-`Config/Base.xcconfig`末尾で任意Secretsを読み、その後Debugが公式テストIDを
-上書きするため、開発ビルドへ本物の広告IDが混入しません。Release IDが空なら
-SDKもバナー領域も無効です。
-
-公開前にAdMob管理画面のUMPメッセージ、プライバシーオプション、
-最新SKAdNetwork一覧を確認してください。
-
-## 検証結果
-
-2026-08-01のフェーズ3〜6反映後に実測した結果:
-
-- 実行先: iPhone 17 Pro Simulator／iOS 26.4
-- Unit Test: 86件中86件成功、失敗0
-- UI Test: 4件中4件成功、失敗0
-- iPhone SE（第3世代）相当 UIスモーク: 1件中1件成功、失敗0
-- Release Simulator build: 成功
-
-次は過去フェーズで記録された確認であり、フェーズ3〜6反映後の現コードでは今回
-再実行していません。App Store提出判定には上記の最新実測と、提出前の実機／端末別
-再検証を使用してください。
-
-最新コードではiPhone SE（第3世代）相当の主要操作／アクセシビリティUIスモークも
-成功しました。Pro Max相当とiPadの追加試行はCoreSimulatorServiceのホスト側接続断で
-アプリ起動前に終了したため、成功件数へ含めていません。
-
-- iPhone SE相当、Pro Max相当、iPad Pro 11-inch相当のレイアウト／VoiceOver確認
-- 本番APIモードのSimulator起動とODPTデータ描画
-- Release実機向け署名なしコンパイル
-- App Iconの全宣言サイズ／アルファと、M PLUS Rounded 3ウェイトの読込確認
-
-自動テストの範囲:
-
-- 4 APIレスポンスのCodable
-- actual／estimated／mock、fallback
-- 路線色、初期選択、検索、表示、お気に入り、通知対象、永続化
-- 表示路線だけの公式運行情報
-- 運転再開／現在見合わせの文脈分類、古い列車を除外した遅延補完
-- 全状態フィルター
-- 上下方向、顔、涙、遅延吹き出し、VoiceOver文言
-- 補間、0〜1クランプ、線路投影、停止、Reduce Motion
-- API失敗時の古いデータ明示とキャッシュ表示維持
-- 過去の列車位置を地図・検索へ出さないオフライン処理
-- 選択路線query、400／429／503再送抑止、Reporter ID形式
-- 列車／運行情報のendpoint別再試行とCommunity GET／POST重複抑止
-- 初回現在地権限ダイアログ中のscene inactivityとバックグラウンド停止
-- 列車番号前方一致検索、0件フィルター、凡例、単一empty state
-- 30分投稿集計、中央値、通知閾値
-
-## 未設定の外部ID／提出前に必要な外部設定
-
-| 項目 | 現在の状態 |
-| --- | --- |
-| Apple Developer Team／配布署名 | 未設定 |
-| APNs Provider Keyまたは証明書／Team ID／Key ID | 未設定 |
-| ネイティブAPNsバックエンド | 未提供 |
-| `APNS_REGISTRATION_URL` | 未設定 |
-| Release用`ADMOB_APP_ID` | 未設定 |
-| Release用`ADMOB_BANNER_UNIT_ID` | 未設定 |
-| UMPの地域別メッセージ | AdMob管理画面で公開前設定が必要 |
-| App Store Connectのサポート／マーケティングURL | 提出前に設定が必要 |
-
-プライバシーポリシーは`https://train-live-map.vercel.app/privacy`、利用規約は
-`https://train-live-map.vercel.app/terms`へ設定済みです。上表の秘密情報や本物の
-外部IDをGitへ追加せず、Apple、Vercel、AdMobの安全な設定から注入してください。
-
-## 既知の制約
-
-- ODPT列車位置は駅間推定で、実際のGPS走行位置とは異なる場合があります。
-- `fromStation`／`toStation`がAPI未提供の場合、詳細は駅名なしの駅間推定表示です。
-- 速度や停車開始時刻はAPI提供時だけ表示精度を保証できます。値を推測しません。
-- 一部の選択可能路線はAPIに全線形状がありません。
-- Webバックエンド、ODPT、CARTO、OpenStreetMap、Google広告の可用性に依存します。
-- APNs端末登録／配信バックエンドは未提供です。
-- バックグラウンド更新は意図的に実装していません。位置情報は現在地ボタン操作時の
-  `When In Use` one-shotだけです。
-- Release用AdMob ID、Apple署名、APNs外部設定は未設定です。
-
-## App Store提出前チェックリスト
-
-### Apple／署名
-
-- Apple Developer Teamを設定
-- Bundle ID `com.shunsoco.trainlivemap`を登録
-- Push Notifications capabilityとAPNs key／証明書を設定
-- Distribution certificate／profileまたはXcode Cloudを設定
-- Release Archiveと実機で起動、投稿、通知deep linkを確認
-
-### バックエンド／外部ID
-
-- APNs端末登録URLのHTTPS POST／DELETEと送信workerを実装
-- Push情報の最大180日失効と通知解除時削除をバックエンドで検証
-- `APNS_REGISTRATION_URL`をReleaseへ注入
-- AdMob App ID／Adaptive Banner Unit IDをReleaseへ注入
-- UMPメッセージを必要地域向けに公開
-- 本番APIの4エンドポイントとCORS／rate limitを再確認
-
-### App Store Connect
-
-- 掲載名、サブタイトル、説明、キーワード、カテゴリを確定
-- サポートURLとマーケティングURLを設定し、既存のプライバシーポリシー／利用規約URLを確認
-- iPhone各サイズとiPadのスクリーンショットを作成
-- App Privacy回答でAPI投稿、匿名ID、広告SDKの取扱いを正確に申告
-- 年齢区分、輸出コンプライアンス、広告識別子の回答
-- 「JR東日本・関東版（非公式）」と位置推定の説明を審査メモにも記載
-- JR東日本の公式ロゴ／車両デザインを使用していないことを確認
-
-### データ利用条件
-
-- [ODPT開発者サイト](https://developer.odpt.org/)と
-  [データカタログ](https://ckan.odpt.org/)でチャレンジ2026条件を再確認
-- OpenStreetMap／CARTOの帰属が表示されることを確認
-- アプリ内「このアプリについて」の非公式表記、問い合わせ、クレジットを確認
-
-## 再検証コマンド
-
-```sh
-xcodegen generate
-
-xcodebuild -project TrainLiveMap.xcodeproj -scheme TrainLiveMap \
-  -configuration Debug -destination 'generic/platform=iOS Simulator' \
-  CODE_SIGNING_ALLOWED=NO build
-
-xcodebuild -project TrainLiveMap.xcodeproj -scheme TrainLiveMap \
-  -configuration Release -destination 'generic/platform=iOS Simulator' \
-  CODE_SIGNING_ALLOWED=NO build
-
-xcodebuild -project TrainLiveMap.xcodeproj -scheme TrainLiveMap \
-  -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' test
-```
-
-macOSのファイル調停でプロジェクト読込が遅い環境では、検証専用コピーまたは
-`-derivedDataPath /tmp/train-live-map-ios-derived-data`を使用してください。
+Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notifications有効）。新しい証明書は未作成。iOS PR: https://github.com/shunsoco-stack/train-live-map-ios/pull/1 、Web PR: https://github.com/shunsoco-stack/train-live-map/pull/9 。
+
+## 署名・Apple登録の現状
+
+- App Store Connect: https://appstoreconnect.apple.com/apps/6826815750/distribution/ios/version/inflight
+- 1.1.0の説明文、サブタイトル、キーワード、サポートURL、審査連絡先、審査メモを保存済み。個人の電話番号はリポジトリへ記録しない
+- カテゴリはナビゲーション／旅行。所有者承認後、審査承認時の自動公開に変更して保存済み
+- 配布プロファイル: Train Live Map App Store 20261025（既存配布証明書使用）
+- 開発プロファイル: Train Live Map Development 20261025（既存開発証明書、登録済みiPhone 16 Pro Max使用）
+- 最終Archive: Artifacts/20261027/TrainLiveMap-1.1.0-4.xcarchive
+- IPA: Artifacts/20261027/TrainLiveMap-1.1.0-4.ipa（Git対象外）
+- ExportOptions: Release/ExportOptions.plist
+- MacとApple認証は復旧済み。iPhone実機は2026-10-27 00:44 JSTのdevicectl確認でavailable (paired)。ビルド3の開発用署名ビルドとインストールは成功。初回起動確認はCoreDevice 10004。07:06 JSTの再試行では起動成功とMLNMapView初期化ログを確認し、45秒の観測中に終了ログなし。実機の基本操作と描画は下記の追加テストで確認済み。APNs受信、VoiceOverの実際の読み上げ、長時間のメモリ・バッテリー測定は未完了。
+
+実データの初期表示で広域路線を全体表示するとアイコンが密集したため、広域の複数路線は東京付近から表示するよう調整。運行情報パネルは1件を要約し、全件はタップ先の画面で確認する。
+
+
+## 2026-10-27 更新
+
+- ビルド3は初期ズーム12へ変更し、推定情報を公式と誤解しないカード文言へ修正。シミュレータビルド、署名付きProduction Archive、IPA書き出し成功。iPhoneのお気に入り／運行情報UIテスト1/1成功。89件の単体テストと既存UI検証は前ビルドでの結果。
+- Transporterで00:10 JSTにビルド3をデリバリ済み。App Store Connectでも処理完了「提出準備完了」を確認し、提出版へ関連付けて保存済み。
+- 実データ画像: iPhone 6.9インチ（1320×2868）、iPhone 6.3インチ（1206×2622）、iPad 13インチ（2064×2752）をRelease/Screenshotsへ保存。App Store Connectへ各1枚登録済み。
+- 年齢制限4+、第三者コンテンツの権利保有、無料、日本のみ配信を保存済み。子ども向けカテゴリは選択していない。
+- プライバシーはOther User ContentとDevice IDを、App Functionality／Linked Yes／Tracking Noとして下書き保存。申告全体の公開は未実施。
+- Web PR #9を承認後にマージ。Vercel本番チェック成功、公開/supportと/privacyのHTTP成功・iOS記載・問い合わせ先を確認。本番通知は無効、送信していない。
+- Web Native Pushテスト9/9、型チェック・対象ESLint成功（既存107件と合計116件）。Sandbox／Production別APNs鍵、JWTキャッシュ分離と設定不備の拒否を含む。この時点では鍵の作成は未実施（後述の承認後に作成済み）。
+- 証跡画像はGit対象外のArtifacts/20261027へ保存。審査連絡先電話番号をGitに含めない。
+
+- 初回配信対象はiPhone・iPad。MacとApple Vision Proの自動配信設定は無効にして保存。
+- APNs専用鍵はSandbox／Production各1個、対象com.shunsoco.trainlivemapだけの作成とVercelへの安全な保存を所有者が承認。両鍵の作成・ダウンロード・形式検証・保護フォルダーへの保存は完了。
+
+## 2026-10-27 実機UI確認
+
+- 接続したiPhone 16 Pro Max（iOS 26.6）で `testLiveBackendMapAndForegroundRecovery` が1/1成功、スキップ0。ODPTの本番データ、地図の帰属3件、路線選択シート、バックグラウンド復帰を確認。
+- 実機スクリーンショットを目視確認し、OpenFreeMap背景・駅・路線・列車、推定表示、非公式表記、帰属を確認。朝の列車が多い時間帯では密集するため、路線絞り込み／ズームによる確認が必要。
+- 結果: `/private/tmp/TLMLiveDevice20261027.xcresult`。画像は `Artifacts/20261027/DeviceUI/`（Git対象外）。
+- 実機テストの署名だけを変更した一時コピーを使用。アプリの63ソース／リソースは元とハッシュ一致。既存のアプリ用開発プロファイルとテスト用標準プロファイルを使用し、新規証明書は作成していない。
+- 追加テストは `TLM_LIVE_UI_TESTS=1` をテストランナーの環境に設定したときだけ実行する。投稿、現在地・通知権限要求、Push送信は行わない。通常のテスト実行ではスキップ。
+- APNs鍵作成は承認・実施済み。Vercelログインを待つ。審査提出・公開、長時間の電力測定、VoiceOver読み上げ、APNs実受信は未完了。
+
+## 2026-10-27 APNs鍵の作成
+
+- Apple Developer Team LC47V8NZP6で、Train Live Map専用のSandbox用とProduction用の鍵を各1個作成。どちらもTopic Specific、対象com.shunsoco.trainlivemapのみ。既存の他アプリ用鍵は変更・失効していない。
+- .p8はGit管理外の保護フォルダーへ移動。ディレクトリ700、鍵ファイル600、OpenSSLの形式検証は両方成功。秘密鍵の内容をチャット・ログ・リポジトリへ出力していない。
+- 鍵の識別情報とローカル保存先は、Git外の `/Users/kinjo/Documents/Codex/SecureCredentials/TrainLiveMap/APNs/manifest.json` に保存。Vercelへの登録は未実施。
+- Vercelの2FA入力障害を調査。入力欄は有効でフォーカスあり。英数／貼り付けとデバッグ解除でも解消せず、通常ログイン画面から開き直して再試行を所有者へ依頼中。2FA解除・認証回避はしていない。
+- APNS_REGISTRATION_URLと通知送信ゲートは引き続き無効。Sandbox／Productionへの実送信は未実施。
+
+## 2026-10-27 初回公開の通知スコープ変更
+
+- 所有者が「初回はPush通知なしで公開を優先する」を選択。通知ボタンを未設定時に非表示にし、権限要求も登録先がない場合は行わない。APNsの実装は将来用に残し、初回の完了条件から通知の実受信・定期配信を外す。現在の公開候補は1.1.0(4)、ビルド3は既にTestFlightへアップロード済み。
+- APNs鍵2個をVercelプロジェクトtrain-live-mapのProduction限定Secretとして保存。Team・Bundle ID・環境別Key IDをConfig保存。APNS_DELIVERY_ENABLEDとAPNS_PRODUCTION_DELIVERY_APPROVEDはfalse。再デプロイは未実施、通知は送信していない。
+- 追加で所有者承認されたAPNS_STORAGE_KEYとCRON_SECRETを256ビット乱数で作成し、Git外の保護フォルダーとVercelのProduction Secretへ保存。秘密値はチャット・Gitへ含めない。定期実行は設定しない。
+- Vercel Hobbyは定期実行1日1回まで。通知延期により有料契約も外部scheduler契約も不要。既存Upstash Redis設定あり。
+- Vercelの実ログでiOS User-Agent・APIパス・HTTP状態・処理時間・メモリ利用を確認。Web Analytics未有効、Drains未設定。Performance DataとOther Diagnostic Dataの申告案を追加し、PrivacyInfo.xcprivacyにも反映。Appleの申告画面は更新・公開前。
+- ビルド4はテスト・Archive・スクリーンショット更新・TestFlight再アップロードが必要。審査提出と公開の承認はまだ取得していない。
+
+## Build 4 verification (2026-10-28)
+
+- XCTest: 89 unit tests + 6 UI tests passed; 0 failed, 1 opt-in hardware test skipped. Result: /private/tmp/TrainLiveMapBuild4Tests20261027.xcresult.
+- Signed Release Archive and IPA exported successfully with existing signing assets. Deep signature verification passed. Artifacts/20261027/TrainLiveMap-1.1.0-4.xcarchive and TrainLiveMap-1.1.0-4.ipa are excluded from Git.
+- Transporter delivered build 4 on 2026-10-27 08:25 JST. Ready for internal testing was confirmed on October 28.
+- Archive has an empty APNSRegistrationURL, no .p8 files, and all four privacy data declarations.
+- App Store review notes now describe the initial release without Push. All four privacy categories are saved as App Functionality / Linked Yes / Tracking No; not yet published.
+- Build 4 screenshots for iPhone 6.3-inch, iPhone 6.9-inch and iPad 13-inch show live production data. Upload replacement is pending.
+- Web PR #10 updates initial-release support/privacy text and reflects verified Vercel diagnostics. TypeScript, scoped ESLint and Vercel checks passed. https://github.com/shunsoco-stack/train-live-map/pull/10 remains unmerged.
+- Hardware live-backend UI verification passed on build 3. Build 4 hardware retesting, VoiceOver speech and long-duration battery/memory measurements have not been completed.
+- Remaining publication gates: replace the store build/screenshots, merge Web PR #10 after approval, publish privacy answers, submit review and release after Apple approval. Review submission and publication still require the owner's final approval.
+
+## Store preparation complete (2026-10-28)
+
+Build 4 is attached and saved. All three screenshot sizes have been replaced and visually verified. Prior images remain recoverable in the Apple asset library. The four privacy answers and review notes are saved. Final owner approval has been requested together for Web PR #10 production deployment, privacy publication, review submission and automatic release after Apple approval. No review submission or public release has occurred.
+
+iCloud was evicting project files during Git reads; Finder Keep Downloaded is now enabled for this project folder, and Git operations completed.
+
+## Apple review submitted (2026-10-28 16:50 JST)
+
+The owner explicitly approved Web PR #10 deployment, publication of all four privacy answers, review submission and automatic release after approval. These actions are complete. App Store Connect confirms Waiting for Review for 1.1.0 (4), submission 53d2a08b-c657-4d71-b790-81080bcd00d7. Public download is not yet verified; Apple approval remains external work.
+
+Web PR #10 merged at 806c9c7c290d6b431a7fea48ae3fe039cda2bf73. Vercel production status is success; public /support and /privacy return HTTP 200 and contain the initial no-Push wording and diagnostic disclosure. Push delivery remains disabled; no notification was sent and no paid plan was started.
+
+Evidence: Artifacts/20261027/app-review-submitted.jpg, app-review-waiting.jpg, privacy-published.jpg and Release/Validation-20261025.json. Review URL: https://appstoreconnect.apple.com/apps/6826815750/distribution/reviewsubmissions/details/53d2a08b-c657-4d71-b790-81080bcd00d7

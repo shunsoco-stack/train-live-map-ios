@@ -1,0 +1,37 @@
+App Privacy申告案 — 初回公開候補1.1.0(4)、2026-10-27確認
+
+対象: SwiftUIアプリ、MapLibre 6.28.0、既存Web API、Vercel、OpenFreeMap。
+広告SDK、IDFA、解析SDK、ログイン、氏名、電話番号、決済情報の収集はない。
+所有者の指定により初回公開はPush通知なし。APNsの登録先は空、通知ボタン非表示、通知権限要求と端末登録を行わない。通知対象路線と通知種別も送信しない。
+
+申告するデータ（いずれもApp Functionality、Linked Yes、Tracking No）:
+1. Identifiers / Device ID
+   投稿用のランダムIDをKeychainで保持し、投稿時にサーバーへ送信。サーバーではHMAC化し、不正投稿防止に使用。投稿元IPのハッシュによるレート制限もある。Appleでの端末単位の関連付けに該当する。既に所有者承認・Apple下書き保存済み。
+2. User Content / Other User Content
+   利用者が選択した路線・状態・遅延分数・投稿時刻。端末識別子に関連付く構造化投稿。自由入力・写真・添付はない。既にApple下書き保存済み。
+3. Diagnostics / Performance Data
+   Vercelに保存されるAPI処理時間・メモリ利用など。2026-10-27、iOS User-Agentを伴う実ログで確認。サービスの障害診断・保守に使用する。
+4. Diagnostics / Other Diagnostic Data
+   Vercelの要求パス・HTTPステータス・User-Agent・時刻などの技術的ログ。IPとUser-Agentを用いた要求の関連付けが可能なためLinked Yes。OpenFreeMapのエラー・安全対策ログも目的に基づき診断・機能維持として扱う。
+
+ホスティングの実設定:
+Vercelプロジェクトtrain-live-mapはHobby。Web Analytics未有効、Drains（外部ログ転送）未設定。HobbyのRuntime Logsは公式仕様で1時間。ただしプラットフォームのセキュリティログ全体の保持期限を保証するものではない。個別利用者のIP・通知トークンを証跡へ書き出していない。
+端末側OSLogには技術的イベントのみ。端末識別子・トークン・本文・座標を出力せず、開発者サーバーへ診断ログを送るSDKもない。サーバー側のログを含めるため診断データを申告する。
+
+Location:
+現在地はボタン操作後の使用中許可で取得し、端末内で地図を移動するために使用する。座標を永続化せず、当社APIへ送信しない。MapLibreの表示領域タイル要求はOpenFreeMapへ届くが、端末の現在地そのものを示す値として送信しない。IPの存在のみを根拠に位置情報を収集すると申告せず、利用目的に基づいて分類する。
+OpenFreeMap公開ポリシー（2026-10-08更新）: 通常アクセスログにIPを保存しない。エラー時のIP・要求URLは7日、安全対策ログは最大30日。Cloudflareによる処理も存在する。
+
+端末内の設定:
+表示路線・お気に入りはUserDefaultsのみ。検索語も端末処理。行動分析や広告目的のデータ利用、第三者の広告データとの照合はない。問い合わせは利用者がメールアプリから送信する。
+投稿は既存バックエンドの直近30分集計と保存期限に従う。将来APNsを公開する場合は、暗号化トークン・所有秘密値ハッシュ・対象路線と通知種別、最終更新から180日失効・解除時削除を再確認して申告を更新する。
+
+PrivacyInfo.xcprivacy:
+UserDefaults CA92.1。DeviceID、OtherUserContent、PerformanceData、OtherDiagnosticDataをAppFunctionality / Linked Yes / Tracking Noで宣言。アプリとMapLibreのmanifestをArchiveで確認する。
+所有者の明示承認後、2026-10-28に4種のデータタイプを各App Functionality／Linked Yes／Tracking NoでAppleへ公開済み。署名付きビルド4のArchiveでも4種類のmanifestを確認済み。
+
+根拠:
+https://developer.apple.com/app-store/app-privacy-details/
+https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype
+https://vercel.com/docs/logs/runtime
+https://openfreemap.org/privacy/

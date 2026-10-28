@@ -51,18 +51,12 @@ struct AboutSheet: View {
                     .font(RailFont.regular(.footnote))
                 }
 
-                Section("プライバシーと通知") {
+                Section("プライバシー") {
                     Label(
-                        "通知配信に使用するAPNs端末トークンと購読路線は、配信サーバーで最終更新から最大180日間保持されます。",
+                        "利用者投稿には、端末内で作成した匿名の識別子を使用します。投稿と識別子は不正投稿の防止に使用します。",
                         systemImage: "hand.raised.fill"
                     )
                     .font(RailFont.regular(.footnote))
-                    Text(
-                        "通知登録の解除時にはサーバーへ購読情報の削除を要求します。"
-                            + "APNs端末トークンはブラウザ用Web Push購読APIへ送信しません。"
-                    )
-                    .font(RailFont.regular(.caption))
-                    .foregroundStyle(.secondary)
                     Text(
                         "端末の現在地は、現在地ボタンをタップした後に許可された場合だけ取得し、"
                             + "地図を現在地付近へ移動するために使用します。位置情報はサーバーへ送信せず、端末にも保存しません。"
@@ -72,6 +66,11 @@ struct AboutSheet: View {
                     .foregroundStyle(.secondary)
                 }
 
+                Section("地図の帰属") {
+                    Link("OpenFreeMap", destination: URL(string: "https://openfreemap.org")!)
+                    Link("© OpenMapTiles", destination: URL(string: "https://openmaptiles.org")!)
+                    Link("© OpenStreetMap contributors", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
+                }
                 Section("法務情報") {
                     Link(destination: Self.privacyPolicyURL) {
                         Label(

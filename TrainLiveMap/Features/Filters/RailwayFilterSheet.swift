@@ -44,6 +44,7 @@ struct RailwayFilterSheet: View {
                     .tint(.yellow)
                     .font(RailFont.bold(.body))
                     .accessibilityHint("地図と一覧をお気に入り路線だけに絞り込みます")
+                    .accessibilityIdentifier("favorites-only-toggle")
 
                     HStack(spacing: 12) {
                         Button("すべて表示") {

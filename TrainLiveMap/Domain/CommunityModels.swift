@@ -36,6 +36,7 @@ struct CommunityReportVote: Codable, Equatable, Sendable {
     let lineId: String
     let status: CommunityReportStatus
     let delayMinutes: Int?
+    var event: String? = nil
 }
 
 struct CommunityReportRecord: Codable, Equatable, Sendable {
@@ -57,6 +58,7 @@ struct CommunityReportSummary: Codable, Identifiable, Equatable, Sendable {
     let status: CommunityReportStatus
     let delayMinutes: Int?
     let voteCount: Int
+    var resumedCount: Int? = nil
     let counts: CommunityReportCounts
     let updatedAt: Date
 

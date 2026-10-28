@@ -1,0 +1,59 @@
+Train Live Map iOS release change list
+PR: https://github.com/shunsoco-stack/train-live-map-ios/pull/1
+Base: 71f6b5b110c53311ead586668d8c422f94e112ad
+Submission record commit: 3da86a93b4d89e49d55d642eaff34ebb2b247c03
+
+.gitignore
+Config/Base.xcconfig
+Config/Debug.xcconfig
+Config/Development.xcconfig
+Config/Production.xcconfig
+Config/Secrets.xcconfig.example
+Config/Staging.xcconfig
+HANDOFF.md
+README.md
+Release/AppStore-ja.txt
+Release/Changed-Files.txt
+Release/Data-License-Review.txt
+Release/ExportOptions.plist
+Release/Privacy-Inventory.txt
+Release/Screenshots/iPad-13-inch/01-live-map.png
+Release/Screenshots/iPhone-6.3-inch/01-live-map.png
+Release/Screenshots/iPhone-6.9-inch/01-live-map.png
+Release/Validation-20261025.json
+TrainLiveMap.xcodeproj/project.pbxproj
+TrainLiveMap.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+TrainLiveMap.xcodeproj/xcshareddata/xcschemes/TrainLiveMap.xcscheme
+TrainLiveMap/App/AppConfiguration.swift
+TrainLiveMap/App/TrainLiveMapApp.swift
+TrainLiveMap/Data/APIClient.swift
+TrainLiveMap/Data/KeychainSecureStringStore.swift
+TrainLiveMap/Data/NetworkConnectivityMonitor.swift
+TrainLiveMap/Data/UITestTrainRepository.swift
+TrainLiveMap/Data/UserPreferences.swift
+TrainLiveMap/Domain/CommunityModels.swift
+TrainLiveMap/Domain/Models.swift
+TrainLiveMap/Domain/NotificationPreferences.swift
+TrainLiveMap/Domain/ServiceStatusLogic.swift
+TrainLiveMap/Features/About/AboutSheet.swift
+TrainLiveMap/Features/Ads/AdManager.swift
+TrainLiveMap/Features/Ads/AdaptiveBannerView.swift
+TrainLiveMap/Features/Community/CommunityReportSheet.swift
+TrainLiveMap/Features/Filters/RailwayFilterSheet.swift
+TrainLiveMap/Features/Main/MainView.swift
+TrainLiveMap/Features/Main/MainViewModel.swift
+TrainLiveMap/Features/Main/ServiceStatusSheet.swift
+TrainLiveMap/Features/Map/MapLibreTrainMap.swift
+TrainLiveMap/Features/Notifications/NotificationManager.swift
+TrainLiveMap/Features/Notifications/NotificationSettingsSheet.swift
+TrainLiveMap/Info.plist
+TrainLiveMap/Resources/MapStyle.json
+TrainLiveMap/Resources/PrivacyInfo.xcprivacy
+TrainLiveMapTests/NotificationRegistrarSecurityTests.swift
+TrainLiveMapTests/ReleaseReadinessTests.swift
+TrainLiveMapUITests/TrainLiveMapUITests.swift
+project.yml
+
+Web release changes (PR #10, merged 806c9c7c290d6b431a7fea48ae3fe039cda2bf73):
+src/app/privacy/page.tsx
+src/app/support/page.tsx

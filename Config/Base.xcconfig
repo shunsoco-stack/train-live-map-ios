@@ -1,9 +1,7 @@
 API_BASE_URL = https:/$()/train-live-map.vercel.app
 APNS_REGISTRATION_URL =
-ADMOB_APP_ID =
-ADMOB_BANNER_UNIT_ID =
 
 MARKETING_VERSION = 1.1.0
-CURRENT_PROJECT_VERSION = 1
+CURRENT_PROJECT_VERSION = 4
 
 #include? "Secrets.xcconfig"

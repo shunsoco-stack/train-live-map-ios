@@ -109,8 +109,18 @@ enum ServiceStatusLogic {
             severity: isMajorDelay ? .major : .minor,
             message: message,
             updatedAt: latestTrainUpdate,
-            dataAccuracy: .estimated
+            dataAccuracy: .estimated,
+            sourceLabel: "列車位置情報（ODPT）",
+            sourceUrl: official.sourceUrl
         )
+    }
+
+    static func confirmsSuspension(_ status: ServiceStatus, now: Date = .now) -> Bool {
+        let age = now.timeIntervalSince(status.updatedAt)
+        return status.dataAccuracy != .mock && age >= -30 && age <= 600
+            && textSignal(in: status.message) == .currentlySuspended
+            && ["全線", "上下線", "内・外回り", "内回り・外回り"].contains(where: status.message.contains)
+            && !["一部区間", "一部列車"].contains(where: status.message.contains)
     }
 
     private enum TextSignal {
@@ -125,6 +135,14 @@ enum ServiceStatusLogic {
         let compact = text
             .replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: "　", with: "")
+
+        // A forecast is not an actual resumption. Check present suspension first.
+        if containsAny(compact, phrases: ["見合わせています", "見合わせております", "見合せています", "再開見込", "再開は", "再開を予定"]) {
+            return .currentlySuspended
+        }
+        if compact == "運転見合わせ" || compact == "運転見合せ" {
+            return .currentlySuspended
+        }
 
         if containsAny(
             compact,
@@ -183,7 +201,9 @@ enum ServiceStatusLogic {
             severity: severity,
             message: status.message,
             updatedAt: status.updatedAt,
-            dataAccuracy: status.dataAccuracy
+            dataAccuracy: status.dataAccuracy,
+            sourceLabel: status.sourceLabel,
+            sourceUrl: status.sourceUrl
         )
     }
 }

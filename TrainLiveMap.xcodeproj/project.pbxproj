@@ -9,11 +9,12 @@
 /* Begin PBXBuildFile section */
 		025FF323BDBB1F5F94CFE05E /* AppConfigurationSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BFFF84654246FBD3F8DAF9 /* AppConfigurationSecurityTests.swift */; };
 		06057DAF6BF0AB95359D2743 /* TrainPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC475DCD427BFED3E0A15CE5 /* TrainPresentationTests.swift */; };
+		06EC7758B86BD39BB88F73D0 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80EF2D91915133F8ECF892ED /* NotificationPreferences.swift */; };
 		080177BACE45BDE4189A7C91 /* RailwaySelectionLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D6DC7F070838EA2182320C /* RailwaySelectionLogicTests.swift */; };
+		11532378413BB7E882BDE088 /* ReleaseReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5581A3786B88FF1F67E11B /* ReleaseReadinessTests.swift */; };
 		13F3C73EEC32010337F1FEEF /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DA9CE06461A89898116667 /* APIClient.swift */; };
 		1965D0F46B05A9C0A3C8DC12 /* CommunityReportLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523C1288DAFA0BF14A828807 /* CommunityReportLogic.swift */; };
 		1DD53A42818A6ADE02516159 /* MPLUSRounded1c-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1CA1FC827BFB4B2EBE30D5A0 /* MPLUSRounded1c-Regular.ttf */; };
-		1FD71FD986548D44665181F7 /* AdManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07BCEA78C7CE83D33A71AD4 /* AdManager.swift */; };
 		219C3B2802CC4DF6A17D1D5C /* RailwayPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F72121FC00230F0E72FB37B0 /* RailwayPreferencesTests.swift */; };
 		275E62BA984BF91BCEB27CF1 /* TrainLiveMapUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CBCA663B48E357A1E461A2 /* TrainLiveMapUITests.swift */; };
 		279DB59F6877B7A3A41904A9 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B655443EA930B6FFE9F6DA9 /* Theme.swift */; };
@@ -22,7 +23,6 @@
 		30736F3E8CDAF698EE823CC0 /* CommunityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15713A196141112B02C36EF /* CommunityModels.swift */; };
 		3A4CAEC4BB12387C83E85630 /* TrainLiveMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E718B395A45C9CFD5D528F6D /* TrainLiveMapApp.swift */; };
 		3D3D32AF3ADB8EE14A6C519E /* MainViewModelCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 893F3FF8057C444DE3EF494B /* MainViewModelCacheTests.swift */; };
-		3EFEC62163A9191373EB40AD /* AdaptiveBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5C6A0B4CBED129D9411C5 /* AdaptiveBannerView.swift */; };
 		41561522556F8934FAADFBF8 /* MPLUSRounded1c-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A861BFB8760A81294F3C50F8 /* MPLUSRounded1c-ExtraBold.ttf */; };
 		43655E1E7787C58F98CD859A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2250DC271E32436FA5BCE81 /* Assets.xcassets */; };
 		46AFC86E0D606B6F65CBF611 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0FC74B99927CC8BDB32C4E /* TestSupport.swift */; };
@@ -33,7 +33,6 @@
 		53260E059CBA86E767002FBC /* trains.json in Resources */ = {isa = PBXBuildFile; fileRef = 76F8408BE82CF87E5F8F27CA /* trains.json */; };
 		5C0D96CE211DED92DAF48FCE /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38B926A2A4EE110B2D2AB1C /* NotificationManager.swift */; };
 		5C51603C3922C5B86AF0D235 /* PolylineGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D589F67EC30A20FA71C7AB18 /* PolylineGeometry.swift */; };
-		662C3390D1645968F519FDC9 /* GoogleUserMessagingPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = 0E99974658B5FE94928E071C /* GoogleUserMessagingPlatform */; };
 		67EE69EEDF3C47B9CDA5C8B9 /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 1B01390260D5E140077F3846 /* MapLibre */; };
 		6B8606CE987C0FDC7B2F105A /* ServiceStatusLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8477EC24BD25AC449ACF901D /* ServiceStatusLogic.swift */; };
 		6D55E61FEC9AF480EAFA978B /* TrainNumberSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAB19B54BCBC7D8D06AE755 /* TrainNumberSearchSheet.swift */; };
@@ -47,9 +46,11 @@
 		9643E155C2FAB9111AFB0965 /* TrainMapLegendSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B1783545B6B9A266F373F0 /* TrainMapLegendSheet.swift */; };
 		9693C759FAC965DC9D837A32 /* KeychainSecureStringStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F6839EA434EFE33CA90240 /* KeychainSecureStringStore.swift */; };
 		9BF2EF41B22771755F4AE93D /* CommunityReportLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A7CB69D3AF74BE70FD73D1 /* CommunityReportLogicTests.swift */; };
+		A05985602DEF29DC58600E5B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 361CDE2D98F4C758799C6F4F /* PrivacyInfo.xcprivacy */; };
 		A305EB2D2CE3C5CBCB8E24A1 /* TrainAPIPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EC854A93C0FD166B202101 /* TrainAPIPhaseTests.swift */; };
 		A33D5C586FA365D28FF492AD /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98802942A1F87784455E7D25 /* AppAppearance.swift */; };
 		A8AA5F8E62766DD334F2FC57 /* UITestTrainRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A856D3E1ED190239E7027FCA /* UITestTrainRepository.swift */; };
+		AA52CCAB1C8F69E526D30FFC /* ServiceStatusSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F52D705AB10A90EB0C17FB3 /* ServiceStatusSheet.swift */; };
 		AD07450E7F14E2A173B658C8 /* NotificationRegistrarSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0594987D0E324B49072465C7 /* NotificationRegistrarSecurityTests.swift */; };
 		AF391BA61F12D29753699072 /* MainViewModelCommunitySecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE9C80049084A5BF961BD94 /* MainViewModelCommunitySecurityTests.swift */; };
 		B4D8FA2763026906B25A027F /* PolylineGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC23C8B195DD88D716DB8355 /* PolylineGeometryTests.swift */; };
@@ -57,7 +58,6 @@
 		B7A2EF4E9E4B03385443CE0A /* APIJSONDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F436116A39E47EC5A2210464 /* APIJSONDecodingTests.swift */; };
 		BEA21559109219CCD0BB3A01 /* MPLUSRounded1c-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA92105E9BB69FA7DDA5C78E /* MPLUSRounded1c-Bold.ttf */; };
 		BFF45D872B2991C9874AC194 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 626859E43C0D648F4CE638FA /* MainView.swift */; };
-		C4009C20B0F0BD58446506B6 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = E35D3977911DFE0141A92BA8 /* GoogleMobileAds */; };
 		CEC90428CC8245842BC4B199 /* TrainNumberSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA65A1D27ADA9561CE3F35D5 /* TrainNumberSearchTests.swift */; };
 		D4A9F531F8653E25DC69A20A /* MainViewModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E139C842F62E69C9F2C78BB3 /* MainViewModelPhaseTests.swift */; };
 		D7320785DC9C22EF1B41DC12 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FEE49A5E5E2D989FF11D26 /* Models.swift */; };
@@ -95,7 +95,6 @@
 
 /* Begin PBXFileReference section */
 		0594987D0E324B49072465C7 /* NotificationRegistrarSecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRegistrarSecurityTests.swift; sourceTree = "<group>"; };
-		05D5C6A0B4CBED129D9411C5 /* AdaptiveBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveBannerView.swift; sourceTree = "<group>"; };
 		09FEE49A5E5E2D989FF11D26 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		0BE6B1076862837DB1237088 /* APIClientSecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientSecurityTests.swift; sourceTree = "<group>"; };
 		11C2828FFF2ECC411279905B /* ServiceStatusResponseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceStatusResponseTests.swift; sourceTree = "<group>"; };
@@ -103,9 +102,12 @@
 		1BA98AF5799F8124217AC343 /* NotificationSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsSheet.swift; sourceTree = "<group>"; };
 		1BB229D4A4345A78958F4BCE /* TrainEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainEmptyStateView.swift; sourceTree = "<group>"; };
 		1CA1FC827BFB4B2EBE30D5A0 /* MPLUSRounded1c-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MPLUSRounded1c-Regular.ttf"; sourceTree = "<group>"; };
+		27D2D8E94593057914ECFAEE /* Staging.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Staging.xcconfig; sourceTree = "<group>"; };
 		2E5BDE114A4728883E407706 /* AboutSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSheet.swift; sourceTree = "<group>"; };
 		2F306C2771CB7C016E2376AE /* HTTPSOnlySessionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPSOnlySessionDelegate.swift; sourceTree = "<group>"; };
+		361CDE2D98F4C758799C6F4F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		37DA9CE06461A89898116667 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		3F52D705AB10A90EB0C17FB3 /* ServiceStatusSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceStatusSheet.swift; sourceTree = "<group>"; };
 		46EC854A93C0FD166B202101 /* TrainAPIPhaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainAPIPhaseTests.swift; sourceTree = "<group>"; };
 		4C0FC74B99927CC8BDB32C4E /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		51BFFF84654246FBD3F8DAF9 /* AppConfigurationSecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationSecurityTests.swift; sourceTree = "<group>"; };
@@ -115,9 +117,11 @@
 		586E5DCD30B574E25F1E66D2 /* RailwaySelectionLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailwaySelectionLogic.swift; sourceTree = "<group>"; };
 		60B1783545B6B9A266F373F0 /* TrainMapLegendSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainMapLegendSheet.swift; sourceTree = "<group>"; };
 		626859E43C0D648F4CE638FA /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		642EC9BCAD4C6A87B44A8343 /* Development.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Development.xcconfig; sourceTree = "<group>"; };
 		76F8408BE82CF87E5F8F27CA /* trains.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trains.json; sourceTree = "<group>"; };
 		7F83B866E80A7E5FE51E2F13 /* CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStore.swift; sourceTree = "<group>"; };
 		7FAB19B54BCBC7D8D06AE755 /* TrainNumberSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainNumberSearchSheet.swift; sourceTree = "<group>"; };
+		80EF2D91915133F8ECF892ED /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
 		821AC4947759D78FF7A480E1 /* ReporterIDStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReporterIDStoreTests.swift; sourceTree = "<group>"; };
 		8477EC24BD25AC449ACF901D /* ServiceStatusLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceStatusLogic.swift; sourceTree = "<group>"; };
 		85370A38E419B1DA99A072D1 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
@@ -126,6 +130,7 @@
 		8A1ED4999D2D405C664D5E34 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		8B655443EA930B6FFE9F6DA9 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		98802942A1F87784455E7D25 /* AppAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
+		9DDB560DDC3E83412E1E0F4C /* Production.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Production.xcconfig; sourceTree = "<group>"; };
 		9FC4E574AD04C4355738A198 /* TrainLiveMapUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TrainLiveMapUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9FD5AF1995AA7D50A1A5A85F /* TrainFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainFilterTests.swift; sourceTree = "<group>"; };
 		A38B926A2A4EE110B2D2AB1C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
@@ -137,11 +142,10 @@
 		B5CA1709EB677EAAD83A2A09 /* TrainIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIconView.swift; sourceTree = "<group>"; };
 		BA65A1D27ADA9561CE3F35D5 /* TrainNumberSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainNumberSearchTests.swift; sourceTree = "<group>"; };
 		BA968A014837E87B13E20E3D /* railways.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = railways.json; sourceTree = "<group>"; };
-		C07BCEA78C7CE83D33A71AD4 /* AdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdManager.swift; sourceTree = "<group>"; };
 		C1293BC15A47A0B568D25785 /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
 		CC475DCD427BFED3E0A15CE5 /* TrainPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainPresentationTests.swift; sourceTree = "<group>"; };
 		CD8A7F552D5236493CA5C2B2 /* community-reports.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "community-reports.json"; sourceTree = "<group>"; };
-		CF23C3E9DE5175EF67659638 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		CF5581A3786B88FF1F67E11B /* ReleaseReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseReadinessTests.swift; sourceTree = "<group>"; };
 		D069AED64532F5B8ECB2D3C4 /* service-status.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "service-status.json"; sourceTree = "<group>"; };
 		D506E761725B17EC27C122BD /* MapStyle.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = MapStyle.json; sourceTree = "<group>"; };
 		D589F67EC30A20FA71C7AB18 /* PolylineGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolylineGeometry.swift; sourceTree = "<group>"; };
@@ -171,8 +175,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				67EE69EEDF3C47B9CDA5C8B9 /* MapLibre in Frameworks */,
-				C4009C20B0F0BD58446506B6 /* GoogleMobileAds in Frameworks */,
-				662C3390D1645968F519FDC9 /* GoogleUserMessagingPlatform in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +255,7 @@
 			children = (
 				E2250DC271E32436FA5BCE81 /* Assets.xcassets */,
 				D506E761725B17EC27C122BD /* MapStyle.json */,
+				361CDE2D98F4C758799C6F4F /* PrivacyInfo.xcprivacy */,
 				6B9DB83F23629755B7E00C42 /* Fonts */,
 			);
 			path = Resources;
@@ -272,6 +275,7 @@
 				F15713A196141112B02C36EF /* CommunityModels.swift */,
 				523C1288DAFA0BF14A828807 /* CommunityReportLogic.swift */,
 				09FEE49A5E5E2D989FF11D26 /* Models.swift */,
+				80EF2D91915133F8ECF892ED /* NotificationPreferences.swift */,
 				D589F67EC30A20FA71C7AB18 /* PolylineGeometry.swift */,
 				586E5DCD30B574E25F1E66D2 /* RailwaySelectionLogic.swift */,
 				8477EC24BD25AC449ACF901D /* ServiceStatusLogic.swift */,
@@ -304,6 +308,7 @@
 			children = (
 				626859E43C0D648F4CE638FA /* MainView.swift */,
 				AFBE52B0DB36AF64F8D90ED5 /* MainViewModel.swift */,
+				3F52D705AB10A90EB0C17FB3 /* ServiceStatusSheet.swift */,
 			);
 			path = Main;
 			sourceTree = "<group>";
@@ -364,6 +369,7 @@
 				EC23C8B195DD88D716DB8355 /* PolylineGeometryTests.swift */,
 				F72121FC00230F0E72FB37B0 /* RailwayPreferencesTests.swift */,
 				15D6DC7F070838EA2182320C /* RailwaySelectionLogicTests.swift */,
+				CF5581A3786B88FF1F67E11B /* ReleaseReadinessTests.swift */,
 				821AC4947759D78FF7A480E1 /* ReporterIDStoreTests.swift */,
 				D9C86322F44874A839548196 /* ServiceStatusLogicTests.swift */,
 				11C2828FFF2ECC411279905B /* ServiceStatusResponseTests.swift */,
@@ -389,7 +395,9 @@
 			isa = PBXGroup;
 			children = (
 				D88B9B240C1C2B92D752C29E /* Debug.xcconfig */,
-				CF23C3E9DE5175EF67659638 /* Release.xcconfig */,
+				642EC9BCAD4C6A87B44A8343 /* Development.xcconfig */,
+				9DDB560DDC3E83412E1E0F4C /* Production.xcconfig */,
+				27D2D8E94593057914ECFAEE /* Staging.xcconfig */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -424,8 +432,6 @@
 		F5E767F5397B91685999532C /* Ads */ = {
 			isa = PBXGroup;
 			children = (
-				05D5C6A0B4CBED129D9411C5 /* AdaptiveBannerView.swift */,
-				C07BCEA78C7CE83D33A71AD4 /* AdManager.swift */,
 			);
 			path = Ads;
 			sourceTree = "<group>";
@@ -466,8 +472,6 @@
 			name = TrainLiveMap;
 			packageProductDependencies = (
 				1B01390260D5E140077F3846 /* MapLibre */,
-				E35D3977911DFE0141A92BA8 /* GoogleMobileAds */,
-				0E99974658B5FE94928E071C /* GoogleUserMessagingPlatform */,
 			);
 			productName = TrainLiveMap;
 			productReference = A8BFCFEC57AE1956F5879725 /* TrainLiveMap.app */;
@@ -505,7 +509,7 @@
 						TestTargetID = D47327F9EEAFD16A13EBF797;
 					};
 					D47327F9EEAFD16A13EBF797 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = LC47V8NZP6;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -520,8 +524,6 @@
 			mainGroup = 3A7CCE301209F8527A53ACD3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				195ECEEC35001C6B49C0FC41 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
-				0B6A79C133AE17F19567F52B /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */,
 				BFE8300D61038B137DAFEE52 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -547,6 +549,7 @@
 				1DD53A42818A6ADE02516159 /* MPLUSRounded1c-Regular.ttf in Resources */,
 				B7001BC811671C27E63FE508 /* MapStyle.json in Resources */,
 				8C28E596680C42011C4C0D93 /* OFL.txt in Resources */,
+				A05985602DEF29DC58600E5B /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -578,8 +581,6 @@
 			files = (
 				13F3C73EEC32010337F1FEEF /* APIClient.swift in Sources */,
 				F311C6D8959124E62C03B64F /* AboutSheet.swift in Sources */,
-				1FD71FD986548D44665181F7 /* AdManager.swift in Sources */,
-				3EFEC62163A9191373EB40AD /* AdaptiveBannerView.swift in Sources */,
 				A33D5C586FA365D28FF492AD /* AppAppearance.swift in Sources */,
 				49C28D5976908A4A54E668DA /* AppConfiguration.swift in Sources */,
 				DB717D095BC974F3E37639DD /* CacheStore.swift in Sources */,
@@ -594,11 +595,13 @@
 				D7320785DC9C22EF1B41DC12 /* Models.swift in Sources */,
 				80461A4CFB59842F95B4A76C /* NetworkConnectivityMonitor.swift in Sources */,
 				5C0D96CE211DED92DAF48FCE /* NotificationManager.swift in Sources */,
+				06EC7758B86BD39BB88F73D0 /* NotificationPreferences.swift in Sources */,
 				EFFC60D15163EF4F8D54C9F0 /* NotificationSettingsSheet.swift in Sources */,
 				5C51603C3922C5B86AF0D235 /* PolylineGeometry.swift in Sources */,
 				DF0B697B8F72E16DEE2B2747 /* RailwayFilterSheet.swift in Sources */,
 				78E4D0A15C47979B923099A5 /* RailwaySelectionLogic.swift in Sources */,
 				6B8606CE987C0FDC7B2F105A /* ServiceStatusLogic.swift in Sources */,
+				AA52CCAB1C8F69E526D30FFC /* ServiceStatusSheet.swift in Sources */,
 				279DB59F6877B7A3A41904A9 /* Theme.swift in Sources */,
 				78A4E9241B6090E9409339C5 /* TrainDetailSheet.swift in Sources */,
 				5166E64035E4F4FAE856C72E /* TrainEmptyStateView.swift in Sources */,
@@ -628,6 +631,7 @@
 				B4D8FA2763026906B25A027F /* PolylineGeometryTests.swift in Sources */,
 				219C3B2802CC4DF6A17D1D5C /* RailwayPreferencesTests.swift in Sources */,
 				080177BACE45BDE4189A7C91 /* RailwaySelectionLogicTests.swift in Sources */,
+				11532378413BB7E882BDE088 /* ReleaseReadinessTests.swift in Sources */,
 				2F0118FD7C7CBE3410C0AB4C /* ReporterIDStoreTests.swift in Sources */,
 				92B7F75C40A3E857B629C7F0 /* ServiceStatusLogicTests.swift in Sources */,
 				FD9C20A4E7D9057A3A591EEA /* ServiceStatusResponseTests.swift in Sources */,
@@ -655,6 +659,23 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0198CA06891D05AD94DB45DF /* Production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TrainLiveMap;
+			};
+			name = Production;
+		};
 		0205A3C1989C94C0A64F627B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D88B9B240C1C2B92D752C29E /* Debug.xcconfig */;
@@ -664,7 +685,7 @@
 				CODE_SIGN_ENTITLEMENTS = TrainLiveMap/TrainLiveMap.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = LC47V8NZP6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TrainLiveMap/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -680,6 +701,23 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
+		};
+		0495B2B6AE4C5DF0BFB22965 /* Production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Train Live Map.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Train Live Map";
+			};
+			name = Production;
 		};
 		0983D53E95F8C19D38B57909 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -698,6 +736,73 @@
 			};
 			name = Debug;
 		};
+		2C2096AA1430F1B03097F66B /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Development;
+		};
 		412DC8E7F8BC63BFEE6AD9ED /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -715,6 +820,49 @@
 			};
 			name = Debug;
 		};
+		595F0ABFBE1DE1825890CD3A /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Train Live Map.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Train Live Map";
+			};
+			name = Development;
+		};
+		640072B30E7468DDF75B0F97 /* Production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9DDB560DDC3E83412E1E0F4C /* Production.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrainLiveMap/TrainLiveMap.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = LC47V8NZP6;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TrainLiveMap/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap;
+				PRODUCT_MODULE_NAME = TrainLiveMap;
+				PRODUCT_NAME = "Train Live Map";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Production;
+		};
 		6F041F02CFEF39D3F7A88318 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -731,6 +879,100 @@
 				TEST_TARGET_NAME = TrainLiveMap;
 			};
 			name = Release;
+		};
+		7C452E7BF05BF759BB6F6290 /* Staging */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Staging;
+		};
+		91BB5BB0070D730481973012 /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TrainLiveMap;
+			};
+			name = Development;
+		};
+		9FD800EED71083C95A7E385A /* Staging */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TrainLiveMap;
+			};
+			name = Staging;
 		};
 		A76451E33C17F5351B29773E /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -792,16 +1034,42 @@
 			};
 			name = Release;
 		};
-		B4420DFBDF40291D7FE518D3 /* Release */ = {
+		A9A5CCEBF1D157DE624CB7A6 /* Development */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CF23C3E9DE5175EF67659638 /* Release.xcconfig */;
+			baseConfigurationReference = 642EC9BCAD4C6A87B44A8343 /* Development.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainLiveMap/TrainLiveMap.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = LC47V8NZP6;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TrainLiveMap/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap;
+				PRODUCT_MODULE_NAME = TrainLiveMap;
+				PRODUCT_NAME = "Train Live Map";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Development;
+		};
+		B4420DFBDF40291D7FE518D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9DDB560DDC3E83412E1E0F4C /* Production.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrainLiveMap/TrainLiveMap.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = LC47V8NZP6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TrainLiveMap/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -834,6 +1102,109 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Train Live Map.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Train Live Map";
 			};
 			name = Release;
+		};
+		C3F4CB6FB4A66CB905BE450E /* Staging */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 27D2D8E94593057914ECFAEE /* Staging.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrainLiveMap/TrainLiveMap.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = LC47V8NZP6;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TrainLiveMap/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap;
+				PRODUCT_MODULE_NAME = TrainLiveMap;
+				PRODUCT_NAME = "Train Live Map";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Staging;
+		};
+		CDBA554093B9C328E44C778D /* Staging */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.shunsoco.trainlivemap.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Train Live Map.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Train Live Map";
+			};
+			name = Staging;
+		};
+		D00AE8CFE187201883A6FFB9 /* Production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Production;
 		};
 		F1E1AAFF4A74A7025D4170BA /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -909,7 +1280,10 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				412DC8E7F8BC63BFEE6AD9ED /* Debug */,
+				595F0ABFBE1DE1825890CD3A /* Development */,
+				0495B2B6AE4C5DF0BFB22965 /* Production */,
 				BE355D7D747ECCA6F3DB4D77 /* Release */,
+				CDBA554093B9C328E44C778D /* Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -918,7 +1292,10 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0983D53E95F8C19D38B57909 /* Debug */,
+				91BB5BB0070D730481973012 /* Development */,
+				0198CA06891D05AD94DB45DF /* Production */,
 				6F041F02CFEF39D3F7A88318 /* Release */,
+				9FD800EED71083C95A7E385A /* Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -927,7 +1304,10 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0205A3C1989C94C0A64F627B /* Debug */,
+				A9A5CCEBF1D157DE624CB7A6 /* Development */,
+				640072B30E7468DDF75B0F97 /* Production */,
 				B4420DFBDF40291D7FE518D3 /* Release */,
+				C3F4CB6FB4A66CB905BE450E /* Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -936,7 +1316,10 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F1E1AAFF4A74A7025D4170BA /* Debug */,
+				2C2096AA1430F1B03097F66B /* Development */,
+				D00AE8CFE187201883A6FFB9 /* Production */,
 				A76451E33C17F5351B29773E /* Release */,
+				7C452E7BF05BF759BB6F6290 /* Staging */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -944,22 +1327,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0B6A79C133AE17F19567F52B /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git";
-			requirement = {
-				kind = exactVersion;
-				version = 3.1.0;
-			};
-		};
-		195ECEEC35001C6B49C0FC41 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
-			requirement = {
-				kind = exactVersion;
-				version = 13.7.0;
-			};
-		};
 		BFE8300D61038B137DAFEE52 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/maplibre/maplibre-gl-native-distribution.git";
@@ -971,20 +1338,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0E99974658B5FE94928E071C /* GoogleUserMessagingPlatform */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0B6A79C133AE17F19567F52B /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */;
-			productName = GoogleUserMessagingPlatform;
-		};
 		1B01390260D5E140077F3846 /* MapLibre */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BFE8300D61038B137DAFEE52 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */;
 			productName = MapLibre;
-		};
-		E35D3977911DFE0141A92BA8 /* GoogleMobileAds */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 195ECEEC35001C6B49C0FC41 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
-			productName = GoogleMobileAds;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
