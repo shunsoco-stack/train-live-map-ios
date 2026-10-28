@@ -45,17 +45,18 @@
     "vulnerabilities": 0
   },
   "unsignedArchive": "/private/tmp/TrainLiveMapFinal20261025.xcarchive",
-  "signedArchive": "Artifacts/20261027/TrainLiveMap-1.1.0-3.xcarchive",
-  "exportedIPA": "Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa",
+  "signedArchive": "Artifacts/20261027/TrainLiveMap-1.1.0-4.xcarchive",
+  "exportedIPA": "Artifacts/20261027/TrainLiveMap-1.1.0-4.ipa",
   "appStoreConnectAppID": "6826815750",
-  "transporterUpload": "Build 3 delivered 2026-10-27 00:10 JST; processing completed",
+  "transporterUpload": "Build 4 delivered 2026-10-27 08:25 JST; Transporter confirms ready for internal testing on 2026-10-28",
   "testFlightUploaded": true,
   "appStoreSubmitted": false,
   "version": "1.1.0",
-  "build": 3,
+  "build": 4,
   "appStoreConnectBuilds": {
     "2": "Ready to Submit verified in App Store Connect",
-    "3": "Ready to Submit verified; attached to App Store version 1.1.0"
+    "3": "Ready to Submit verified; attached to App Store version 1.1.0",
+    "4": "Transporter: Ready for internal testing. Store-version attachment pending."
   },
   "ageRating": "4+ saved; not Kids category",
   "webProduction": {
@@ -70,7 +71,7 @@
       "Japan"
     ],
     "contentRights": "Third-party rights declared after owner approval",
-    "privacyDraft": "Device ID and Other User Content: App Functionality, linked, not tracking",
+    "privacyDraft": "Device ID, Other User Content, Performance Data, Other Diagnostic Data: App Functionality, linked, not tracking; saved, not published",
     "privacyPublished": false,
     "platforms": [
       "iPhone",
@@ -80,7 +81,8 @@
       "iPhone6.9": 1,
       "iPhone6.3": 1,
       "iPad13": 1
-    }
+    },
+    "screenshotsBuild4Replacement": "In progress; existing uploaded images are build 3"
   },
   "developmentBuild3": "Signed build succeeded",
   "physicalDevice": {
@@ -122,8 +124,26 @@
     "privateKeysOutsideRepository": true,
     "fileMode": "0600",
     "keyValidation": "Both keys valid",
-    "vercelStored": false,
+    "vercelStored": true,
     "sandboxDeliveryVerified": false,
-    "productionPushSent": false
-  }
+    "productionPushSent": false,
+    "deploymentPending": true,
+    "initialRelease": "Push notifications deferred by owner; delivery disabled"
+  },
+  "build4Tests": {
+    "passed": 95,
+    "failed": 0,
+    "skipped": 1,
+    "unitTests": 89,
+    "uiTests": 6,
+    "resultBundle": "/private/tmp/TrainLiveMapBuild4Tests20261027.xcresult",
+    "skippedTest": "Opt-in physical-device live-backend test"
+  },
+  "build4ArtifactChecks": {
+    "signatureVerified": true,
+    "apnsRegistrationURL": "",
+    "privacyTypes": 4,
+    "privateKeyFiles": 0
+  },
+  "webInitialReleasePolicyPR": "https://github.com/shunsoco-stack/train-live-map/pull/10"
 }

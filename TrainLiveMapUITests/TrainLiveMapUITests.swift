@@ -14,7 +14,7 @@ final class TrainLiveMapUITests: XCTestCase {
             app.descendants(matching: .any)["data-source-badge"]
                 .waitForExistence(timeout: 5)
         )
-        XCTAssertTrue(app.buttons["notification-settings-button"].exists)
+        XCTAssertFalse(app.buttons["notification-settings-button"].exists)
         XCTAssertTrue(app.buttons["community-report-button"].exists)
         XCTAssertTrue(app.buttons["railway-filter-button"].exists)
         XCTAssertTrue(app.buttons["current-location-button"].exists)
@@ -96,7 +96,7 @@ final class TrainLiveMapUITests: XCTestCase {
         app.buttons["みんなの運行情報を閉じる"].tap()
     }
 
-    func testLargeDynamicTypeDarkModeAndNotificationExplanation() {
+    func testLargeDynamicTypeDarkModeAndPrivacyExplanation() {
         let app = makeApp()
         app.launchArguments += [
             "-AppleInterfaceStyle", "Dark",
@@ -106,31 +106,15 @@ final class TrainLiveMapUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Train Live Map"].waitForExistence(timeout: 8))
-        let notificationButton = app.buttons["notification-settings-button"]
-        XCTAssertTrue(notificationButton.waitForExistence(timeout: 5))
-        notificationButton.tap()
+        XCTAssertFalse(app.buttons["notification-settings-button"].exists)
+        app.buttons["このアプリについて"].tap()
+        XCTAssertTrue(app.navigationBars["このアプリについて"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["JR東日本・関東版（非公式）"].exists)
+        let privacy = app.staticTexts["プライバシー"]
+        let list = app.collectionViews.firstMatch
+        for _ in 0..<4 where !privacy.isHittable { list.swipeUp() }
+        XCTAssertTrue(privacy.exists)
 
-        let notificationNavigationBar = app.navigationBars["運行情報の通知"]
-        if !notificationNavigationBar.waitForExistence(timeout: 5),
-           notificationButton.isHittable {
-            notificationButton.tap()
-        }
-        XCTAssertTrue(
-            notificationNavigationBar.waitForExistence(timeout: 8)
-        )
-        XCTAssertTrue(
-            app.staticTexts["お気に入り路線の変化をお知らせ"].exists
-        )
-        XCTAssertTrue(
-            app.staticTexts
-                .matching(
-                    NSPredicate(
-                        format: "label CONTAINS '利用者からの報告'"
-                    )
-                )
-                .firstMatch
-                .exists
-        )
     }
 
     func testTrainNumberSearchLegendDetailAndDisabledFilters() {
@@ -254,7 +238,7 @@ final class TrainLiveMapUITests: XCTestCase {
         XCUIDevice.shared.press(.home)
         app.activate()
         XCTAssertTrue(liveBadge.waitForExistence(timeout: 15))
-        XCTAssertTrue(app.buttons["notification-settings-button"].exists)
+        XCTAssertFalse(app.buttons["notification-settings-button"].exists)
         let resumedImage = XCTAttachment(screenshot: app.screenshot())
         resumedImage.name = "Live map after foreground recovery"
         resumedImage.lifetime = .keepAlways

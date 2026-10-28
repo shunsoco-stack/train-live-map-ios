@@ -85,6 +85,7 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     func requestAuthorization() async {
+        guard backendConfigured else { return }
         registrationError = nil
         do {
             _ = try await UNUserNotificationCenter.current()

@@ -1,6 +1,6 @@
 # Train Live Map iOS 引き継ぎ
 
-更新日: 2026-10-27。1.1.0(3)の署名付きProduction Archive・IPA作成とアップロードが完了。TestFlightで「提出準備完了」を確認し、App Store版1.1.0へ関連付け済みです。審査提出・公開は未実施です。
+更新日: 2026-10-28。初回Pushなしの1.1.0(4)は自動テスト95件成功、署名付きProduction Archive・IPA作成・アップロード完了。Transporterで「内部テストの準備ができています」を確認しました。提出版はまだビルド3に関連付いており、ビルド4への差し替え作業中です。審査提出・公開は未実施です。
 
 ## リポジトリと環境
 
@@ -12,7 +12,7 @@
 - SwiftUI、MVVM、Repository、async/await、MapLibre Native 6.28.0、SPM
 - プロジェクト正本: `project.yml`。生成済み `TrainLiveMap.xcodeproj` を同梱
 - 確定Bundle ID: `com.shunsoco.trainlivemap`
-- Version 1.1.0、Build 3。Developer Teamは確認済みのLC47V8NZP6
+- Version 1.1.0、Build 4。Developer Teamは確認済みのLC47V8NZP6
 
 ## 実装
 
@@ -26,7 +26,7 @@
 
 利用者投稿には平常・遅れ・大幅遅延・見合わせ・再開を用意。再開は既存APIのon-time票に任意のeventを追加する互換方式です。投稿は公式情報と分け、匿名のランダム識別子をKeychainへ保存して送信します。サーバーと端末の両方で連続投稿を制限します。
 
-通知設定は有効化、対象路線、公式のみ／利用者報告も含む、見合わせ・再開・遅延を保存。ユーザー操作後だけ権限を要求します。APNsクライアントは所有秘密値をKeychainに保持して登録・解除し、設定更新を直列化します。
+所有者の選択により初回はPush通知なし。通知ボタンを非表示にし、通知権限要求・APNs端末登録を行いません。通知設定・登録解除・Keychainの実装は将来用に保持します。APNS_REGISTRATION_URLは空、サーバーの配信ゲートはfalseです。
 
 広告SDKと広告ID・SKAdNetwork設定は除去済み。ATT・広告配信・解析SDKはありません。位置情報はボタン操作後の使用中許可のみで、アプリのサーバーへ送信しません。
 
@@ -36,7 +36,7 @@
 
 Web側の別変更で `/api/apns/devices`（POST/DELETE）と `/api/apns/dispatch`（認証付きGET）を追加。AES-256-GCM、所有者ハッシュ、Redisの原子的更新・回数制限、180日失効、無効トークン削除、状態変化・利用者報告急増の判定を実装しました。詳細はWebの `docs/native-apns.md`。
 
-本番Vercelの環境変数名を確認したところAPNs設定は未提供でした。APNS_REGISTRATION_URLは空のままで、配信は既定で無効です。APNs専用鍵2個は所有者の明示承認後に作成済み。Vercelへの保存は2FA入力障害の解消待ち。本番Push送信・本番データ削除はしていません。
+本番Vercelの環境変数名を確認したところAPNs設定は未提供でした。APNS_REGISTRATION_URLは空のままで、配信は既定で無効です。APNs専用鍵2個は所有者の明示承認後に作成済み。VercelへのSecret保存は完了。初回公開は所有者指定でPush通知なし。本番Push送信・本番データ削除はしていません。
 
 ## 環境の切替
 
@@ -69,7 +69,7 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 
 1. 接続iPhoneで地図、権限、復帰、通信切替、VoiceOver、メモリ・バッテリーを検証
 2. 作成済みAPNs鍵をVercel Secretへ保存し、環境変数・定期実行環境を設定して開発用端末で登録、受信、解除を検証。本番通知送信は別途確認対象
-3. プライバシー申告をホスティング実設定と照合して確定。Vercel接続ツールはプロジェクト参照不可、Chromeログイン待ち
+3. プライバシー申告をホスティング実設定と照合して確定。Vercel接続ツールはプロジェクト参照不可。Chromeログイン後にHobby・ログ保存・Drains未設定を確認
 4. App Store Connectの画像、プライバシー公開、配信対象プラットフォームの最終確認
 5. 所有者の確認後に審査提出し、Apple承認後に公開。審査提出・公開は未承認
 
@@ -124,3 +124,24 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 - 鍵の識別情報とローカル保存先は、Git外の `/Users/kinjo/Documents/Codex/SecureCredentials/TrainLiveMap/APNs/manifest.json` に保存。Vercelへの登録は未実施。
 - Vercelの2FA入力障害を調査。入力欄は有効でフォーカスあり。英数／貼り付けとデバッグ解除でも解消せず、通常ログイン画面から開き直して再試行を所有者へ依頼中。2FA解除・認証回避はしていない。
 - APNS_REGISTRATION_URLと通知送信ゲートは引き続き無効。Sandbox／Productionへの実送信は未実施。
+
+## 2026-10-27 初回公開の通知スコープ変更
+
+- 所有者が「初回はPush通知なしで公開を優先する」を選択。通知ボタンを未設定時に非表示にし、権限要求も登録先がない場合は行わない。APNsの実装は将来用に残し、初回の完了条件から通知の実受信・定期配信を外す。現在の公開候補は1.1.0(4)、ビルド3は既にTestFlightへアップロード済み。
+- APNs鍵2個をVercelプロジェクトtrain-live-mapのProduction限定Secretとして保存。Team・Bundle ID・環境別Key IDをConfig保存。APNS_DELIVERY_ENABLEDとAPNS_PRODUCTION_DELIVERY_APPROVEDはfalse。再デプロイは未実施、通知は送信していない。
+- 追加で所有者承認されたAPNS_STORAGE_KEYとCRON_SECRETを256ビット乱数で作成し、Git外の保護フォルダーとVercelのProduction Secretへ保存。秘密値はチャット・Gitへ含めない。定期実行は設定しない。
+- Vercel Hobbyは定期実行1日1回まで。通知延期により有料契約も外部scheduler契約も不要。既存Upstash Redis設定あり。
+- Vercelの実ログでiOS User-Agent・APIパス・HTTP状態・処理時間・メモリ利用を確認。Web Analytics未有効、Drains未設定。Performance DataとOther Diagnostic Dataの申告案を追加し、PrivacyInfo.xcprivacyにも反映。Appleの申告画面は更新・公開前。
+- ビルド4はテスト・Archive・スクリーンショット更新・TestFlight再アップロードが必要。審査提出と公開の承認はまだ取得していない。
+
+## Build 4 verification (2026-10-28)
+
+- XCTest: 89 unit tests + 6 UI tests passed; 0 failed, 1 opt-in hardware test skipped. Result: /private/tmp/TrainLiveMapBuild4Tests20261027.xcresult.
+- Signed Release Archive and IPA exported successfully with existing signing assets. Deep signature verification passed. Artifacts/20261027/TrainLiveMap-1.1.0-4.xcarchive and TrainLiveMap-1.1.0-4.ipa are excluded from Git.
+- Transporter delivered build 4 on 2026-10-27 08:25 JST. Ready for internal testing was confirmed on October 28.
+- Archive has an empty APNSRegistrationURL, no .p8 files, and all four privacy data declarations.
+- App Store review notes now describe the initial release without Push. All four privacy categories are saved as App Functionality / Linked Yes / Tracking No; not yet published.
+- Build 4 screenshots for iPhone 6.3-inch, iPhone 6.9-inch and iPad 13-inch show live production data. Upload replacement is pending.
+- Web PR #10 updates initial-release support/privacy text and reflects verified Vercel diagnostics. TypeScript, scoped ESLint and Vercel checks passed. https://github.com/shunsoco-stack/train-live-map/pull/10 remains unmerged.
+- Hardware live-backend UI verification passed on build 3. Build 4 hardware retesting, VoiceOver speech and long-duration battery/memory measurements have not been completed.
+- Remaining publication gates: replace the store build/screenshots, merge Web PR #10 after approval, publish privacy answers, submit review and release after Apple approval. Review submission and publication still require the owner's final approval.

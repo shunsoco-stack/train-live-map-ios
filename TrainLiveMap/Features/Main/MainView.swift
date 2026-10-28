@@ -399,22 +399,24 @@ struct MainView: View {
 
             Spacer(minLength: 2)
 
-            Button {
-                notificationSheetPresented = true
-            } label: {
-                Image(
-                    systemName: notificationManager.state == .authorized
-                        ? "bell.fill"
-                        : "bell"
-                )
-                .font(.system(size: 17, weight: .bold))
-                .frame(width: 44, height: 44)
-                .foregroundStyle(RailTheme.cream)
-                .background(.white.opacity(0.1), in: Circle())
+            if AppConfiguration.current.apnsRegistrationURL != nil {
+                Button {
+                    notificationSheetPresented = true
+                } label: {
+                    Image(
+                        systemName: notificationManager.state == .authorized
+                            ? "bell.fill"
+                            : "bell"
+                    )
+                    .font(.system(size: 17, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .foregroundStyle(RailTheme.cream)
+                    .background(.white.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("運行情報の通知設定")
+                .accessibilityIdentifier("notification-settings-button")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("運行情報の通知設定")
-            .accessibilityIdentifier("notification-settings-button")
 
 
         }

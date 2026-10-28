@@ -1,7 +1,7 @@
 アプリ名: Train Live Map
 サブタイトル: JR東日本・関東版（非公式）
 バージョン: 1.1.0
-ビルド: 3
+ビルド: 4
 カテゴリ: ナビゲーション（候補）、旅行（副カテゴリ候補）
 価格: 無料（課金・広告なし）
 キーワード: 電車,列車,路線,運行情報,遅延,駅,鉄道,関東,山手線,埼京線,地図,通勤,通学,JR東日本
@@ -35,4 +35,4 @@ Train Live Mapは、JR東日本の関東エリアの列車位置と運行情報�
 地図: OpenFreeMap、© OpenMapTiles、© OpenStreetMap contributors。
 
 審査メモ:
-No login or review account is required. This is a native SwiftUI application with MapLibre Native, not a web view wrapper. It is an unofficial JR East Kanto train information app. Train positions are estimates based on station-to-station data, not GPS. The app never contains an ODPT access token; all transport data is obtained from our HTTPS server. Community reports are structured votes (no free text or attachments), rate-limited and displayed separately from official information. Location permission is requested only after tapping the location button and is used only on device to center the map. No ads, IDFA or tracking SDK is included. Notifications are optional and permission is requested only after the user reads the explanation and taps to enable. Native push must be deployed and verified before claiming it as an available review feature.
+No login or review account is required. This is a native SwiftUI application with MapLibre Native, not a web view wrapper. It is an unofficial JR East Kanto train information app. Train positions are estimates based on station-to-station data, not GPS. The app never contains an ODPT access token; all transport data is obtained from our HTTPS server. Community reports are structured votes (no free text or attachments), rate-limited and displayed separately from official information. Location permission is requested only after tapping the location button and is used only on device to center the map. No ads, IDFA or tracking SDK is included. Push notifications are not included in this initial release. The app does not request notification permission or register APNs device tokens.
