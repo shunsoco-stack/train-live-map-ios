@@ -28,7 +28,7 @@ OpenFreeMap公開ポリシー（2026-10-08更新）: 通常アクセスログに
 
 PrivacyInfo.xcprivacy:
 UserDefaults CA92.1。DeviceID、OtherUserContent、PerformanceData、OtherDiagnosticDataをAppFunctionality / Linked Yes / Tracking Noで宣言。アプリとMapLibreのmanifestをArchiveで確認する。
-Apple下書きには4種のデータタイプと、各App Functionality／Linked Yes／Tracking Noを保存済み。全体の公開は所有者の最終承認待ち。署名付きビルド4のArchiveでも4種類のmanifestを確認済み。
+所有者の明示承認後、2026-10-28に4種のデータタイプを各App Functionality／Linked Yes／Tracking NoでAppleへ公開済み。署名付きビルド4のArchiveでも4種類のmanifestを確認済み。
 
 根拠:
 https://developer.apple.com/app-store/app-privacy-details/

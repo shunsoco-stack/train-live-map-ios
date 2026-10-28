@@ -50,7 +50,7 @@
   "appStoreConnectAppID": "6826815750",
   "transporterUpload": "Build 4 delivered 2026-10-27 08:25 JST; Transporter confirms ready for internal testing on 2026-10-28",
   "testFlightUploaded": true,
-  "appStoreSubmitted": false,
+  "appStoreSubmitted": true,
   "version": "1.1.0",
   "build": 4,
   "appStoreConnectBuilds": {
@@ -60,10 +60,13 @@
   },
   "ageRating": "4+ saved; not Kids category",
   "webProduction": {
-    "commit": "896aebeb8c63ee4457770f42ad05548360c3fadf",
+    "commit": "806c9c7c290d6b431a7fea48ae3fe039cda2bf73",
     "vercelStatus": "success",
     "supportVerified": true,
-    "privacyNativeContentVerified": true
+    "privacyNativeContentVerified": true,
+    "initialPushDeferredCopyVerified": true,
+    "diagnosticDisclosureVerified": true,
+    "deploymentURL": "https://vercel.com/shunsoco-stacks-projects/train-live-map/Gnb2p5H8z7yztYPbEC3m6e7kbs79"
   },
   "appStoreSettings": {
     "price": "JPY 0",
@@ -71,8 +74,8 @@
       "Japan"
     ],
     "contentRights": "Third-party rights declared after owner approval",
-    "privacyDraft": "Device ID, Other User Content, Performance Data, Other Diagnostic Data: App Functionality, linked, not tracking; saved, not published",
-    "privacyPublished": false,
+    "privacyDraft": "Published: Device ID, Other User Content, Performance Data, Other Diagnostic Data; App Functionality, linked, not tracking",
+    "privacyPublished": true,
     "platforms": [
       "iPhone",
       "iPad"
@@ -82,8 +85,9 @@
       "iPhone6.3": 1,
       "iPad13": 1
     },
-    "screenshotsBuild4Replacement": "Verified: one build 4 live-data screenshot each for iPhone 6.3, iPhone 6.9 and iPad 13; old images removed from listing, retained in Apple asset library",
-    "reviewNotes": "Saved: initial release has no Push permission request or APNs registration"
+    "screenshotsBuild4Replacement": "Verified: one build 4 live-data screenshot each for iPhone 6.3, iPhone 6.9 and iPad 13",
+    "reviewNotes": "Saved: initial release has no Push permission request or APNs registration",
+    "releaseMode": "Automatically release after Apple approval"
   },
   "developmentBuild3": "Signed build succeeded",
   "physicalDevice": {
@@ -128,7 +132,7 @@
     "vercelStored": true,
     "sandboxDeliveryVerified": false,
     "productionPushSent": false,
-    "deploymentPending": true,
+    "deploymentPending": false,
     "initialRelease": "Push notifications deferred by owner; delivery disabled"
   },
   "build4Tests": {
@@ -148,5 +152,13 @@
     "ipaSHA256": "9fada98b228b2dba5cadf0d7600ea7fbf579401cb839da9db6bb8a68491357b4"
   },
   "webInitialReleasePolicyPR": "https://github.com/shunsoco-stack/train-live-map/pull/10",
-  "submissionApproval": "Requested from owner on 2026-10-28; pending"
+  "submissionApproval": "Owner explicitly approved Web PR #10 production deployment, privacy publication, review submission and automatic release after approval on 2026-10-28",
+  "appStoreSubmission": {
+    "id": "53d2a08b-c657-4d71-b790-81080bcd00d7",
+    "submittedAt": "2026-10-28T16:50:00+09:00",
+    "status": "Waiting for Review",
+    "build": "1.1.0 (4)",
+    "automaticRelease": true,
+    "publicDownloadVerified": false
+  }
 }

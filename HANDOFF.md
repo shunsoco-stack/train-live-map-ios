@@ -1,6 +1,6 @@
 # Train Live Map iOS 引き継ぎ
 
-更新日: 2026-10-28。初回Pushなしの1.1.0(4)は自動テスト95件成功、署名付きProduction Archive・IPA作成・アップロード完了。App Store Connectの提出版にビルド4を関連付けて保存済みです。審査提出・公開は未実施です。
+更新日: 2026-10-28 16:50 JST。初回Pushなしの1.1.0(4)をApple審査へ提出済みで、状態は「審査待ち」です。所有者承認に基づき、無料・日本のみ・iPhone/iPad・審査承認後の自動公開を設定済み。一般ダウンロードはまだ未確認で、目標達成とはしていません。
 
 ## リポジトリと環境
 
@@ -65,12 +65,12 @@ Development、Staging、Productionのxcconfigを用意。DebugはDevelopment、R
 
 テスト成果物は `/private/tmp/TrainLiveMapTests20261025-C.xcresult` と `/private/tmp/TrainLiveMapUITests20261025-D.xcresult`。一時ディレクトリなので長期保管先ではありません。
 
-## 提出までの残作業
+## 公開までの残作業
 
-1. App Store Connectの画像差し替えと下書きの最終確認
-2. 所有者の確認後にWeb PR #10を本番反映し、プライバシー申告4種類を公開
-3. 所有者の確認後に審査提出し、Apple承認後に公開。審査提出・公開は未承認
-4. 実機のVoiceOver音声、長時間メモリ・バッテリー、通信切替、位置情報権限は追加確認項目。地図描画・復帰はビルド3で確認済み
+1. Appleの審査結果を確認。指摘があれば対応し、承認後の自動公開と日本のApp Storeでの一般ダウンロードを確認する
+2. 実機のVoiceOver音声、長時間メモリ・バッテリー、通信切替、位置情報権限は追加確認項目。地図描画・復帰はビルド3で確認済み。10月28日の接続端末はunavailableで、ビルド4の実機再確認は未実施
+
+提出ID: `53d2a08b-c657-4d71-b790-81080bcd00d7`。プライバシー4種類は公開済み。Web PR #10は承認後にマージし、Vercel本番デプロイ成功。公開support/privacyページでも初回Pushなし・診断ログの説明を確認済み。
 
 Pushは所有者指定で初回対象外。鍵のVercel保存は完了済みだが、定期実行・端末配信検証・有料契約は行わない。
 
@@ -84,11 +84,11 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 
 - App Store Connect: https://appstoreconnect.apple.com/apps/6826815750/distribution/ios/version/inflight
 - 1.1.0の説明文、サブタイトル、キーワード、サポートURL、審査連絡先、審査メモを保存済み。個人の電話番号はリポジトリへ記録しない
-- カテゴリはナビゲーション／旅行。審査後は手動公開に設定済み
+- カテゴリはナビゲーション／旅行。所有者承認後、審査承認時の自動公開に変更して保存済み
 - 配布プロファイル: Train Live Map App Store 20261025（既存配布証明書使用）
 - 開発プロファイル: Train Live Map Development 20261025（既存開発証明書、登録済みiPhone 16 Pro Max使用）
-- 最終Archive: Artifacts/20261027/TrainLiveMap-1.1.0-3.xcarchive
-- IPA: Artifacts/20261027/TrainLiveMap-1.1.0-3.ipa（Git対象外）
+- 最終Archive: Artifacts/20261027/TrainLiveMap-1.1.0-4.xcarchive
+- IPA: Artifacts/20261027/TrainLiveMap-1.1.0-4.ipa（Git対象外）
 - ExportOptions: Release/ExportOptions.plist
 - MacとApple認証は復旧済み。iPhone実機は2026-10-27 00:44 JSTのdevicectl確認でavailable (paired)。ビルド3の開発用署名ビルドとインストールは成功。初回起動確認はCoreDevice 10004。07:06 JSTの再試行では起動成功とMLNMapView初期化ログを確認し、45秒の観測中に終了ログなし。実機の基本操作と描画は下記の追加テストで確認済み。APNs受信、VoiceOverの実際の読み上げ、長時間のメモリ・バッテリー測定は未完了。
 
@@ -152,3 +152,11 @@ Apple DeveloperにApp ID com.shunsoco.trainlivemapを登録済み（Push Notific
 Build 4 is attached and saved. All three screenshot sizes have been replaced and visually verified. Prior images remain recoverable in the Apple asset library. The four privacy answers and review notes are saved. Final owner approval has been requested together for Web PR #10 production deployment, privacy publication, review submission and automatic release after Apple approval. No review submission or public release has occurred.
 
 iCloud was evicting project files during Git reads; Finder Keep Downloaded is now enabled for this project folder, and Git operations completed.
+
+## Apple review submitted (2026-10-28 16:50 JST)
+
+The owner explicitly approved Web PR #10 deployment, publication of all four privacy answers, review submission and automatic release after approval. These actions are complete. App Store Connect confirms Waiting for Review for 1.1.0 (4), submission 53d2a08b-c657-4d71-b790-81080bcd00d7. Public download is not yet verified; Apple approval remains external work.
+
+Web PR #10 merged at 806c9c7c290d6b431a7fea48ae3fe039cda2bf73. Vercel production status is success; public /support and /privacy return HTTP 200 and contain the initial no-Push wording and diagnostic disclosure. Push delivery remains disabled; no notification was sent and no paid plan was started.
+
+Evidence: Artifacts/20261027/app-review-submitted.jpg, app-review-waiting.jpg, privacy-published.jpg and Release/Validation-20261025.json. Review URL: https://appstoreconnect.apple.com/apps/6826815750/distribution/reviewsubmissions/details/53d2a08b-c657-4d71-b790-81080bcd00d7

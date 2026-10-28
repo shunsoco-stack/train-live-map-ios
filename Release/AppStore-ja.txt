@@ -2,14 +2,17 @@
 サブタイトル: JR東日本・関東版（非公式）
 バージョン: 1.1.0
 ビルド: 4
-カテゴリ: ナビゲーション（候補）、旅行（副カテゴリ候補）
+カテゴリ: ナビゲーション、旅行（副カテゴリ）
 価格: 無料（課金・広告なし）
 キーワード: 電車,列車,路線,運行情報,遅延,駅,鉄道,関東,山手線,埼京線,地図,通勤,通学,JR東日本
 サポートURL: https://train-live-map.vercel.app/support
 プライバシーポリシーURL: https://train-live-map.vercel.app/privacy
 マーケティングURL: https://train-live-map.vercel.app/
 問い合わせ先: train-live-map-support@gmail.com
-著作権: 2026 Shunsuke Kinjo（権利者表記を提出前に確認）
+著作権: 2026 Shunsuke Kinjo
+配信地域: 日本のみ
+公開方式: Apple審査承認後に自動公開
+提出状況: 2026-10-28 16:50 JSTに1.1.0(4)を提出、審査待ち
 
 説明文:
 関東の電車を、見やすい地図で。
