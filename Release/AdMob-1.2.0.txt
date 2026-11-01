@@ -29,8 +29,11 @@ IDFA is unavailable without ATT. Personalization and publisher first-party IDs a
 
 Validation and outstanding checks
 89 existing unit tests and the map-control UI smoke test passed.
-Advertising ID validation passed. Final banner placement checks are recorded below.
-Production device build passed with CODE_SIGNING_ALLOWED=NO.
+Advertising ID validation passed. Banner placement UI tests passed on iPhone SE (3rd generation) and iPad Pro 13-inch. These use a clearly labeled layout fixture, not an actual ad. The tests assert 50pt height, separation from attribution and controls, and opening route selection.
+Five build-configuration cases passed (valid IDs, empty app/unit, demo release IDs, mismatched publisher).
+Production device build and final unsigned Archive passed with CODE_SIGNING_ALLOWED=NO.
+Archive Artifacts/20261101/TrainLiveMap-1.2.0-5-unsigned.xcarchive.
+Includes app, MapLibre, GoogleMobileAds and UMP privacy manifests.
 Signed Archive failed because this Mac exposes no valid Apple Distribution identity/private key for LC47V8NZP6.
 Actual banner delivery is not yet verified. UMP returned documented configuration error 4. The AdMob message page remains loading inside its iframe after reload; direct embedded-page display works but its create action does not navigate.
 Google still reports app-ads.txt verification pending/failed despite the public HTTPS record matching its exact requested line.
