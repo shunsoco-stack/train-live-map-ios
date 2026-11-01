@@ -7,8 +7,9 @@ struct MapBannerView: UIViewControllerRepresentable {
     @Binding var loaded: Bool
 
     func makeUIViewController(context: Context) -> UIViewController {
-        let controller = UIViewController()
+        let controller = BannerContainerController()
         controller.view.clipsToBounds = true
+        controller.view.accessibilityIdentifier = "advertising-banner-container"
         #if DEBUG && targetEnvironment(simulator)
         if AppConfiguration.isAdvertisingLayoutTest {
             let label = UILabel(frame: CGRect(x: 0, y: 0, width: 320, height: 50))
@@ -17,7 +18,7 @@ struct MapBannerView: UIViewControllerRepresentable {
             label.backgroundColor = .secondarySystemBackground
             label.textColor = .label
             label.accessibilityIdentifier = "advertising-layout-fixture"
-            controller.view.addSubview(label)
+            controller.install(label)
             return controller
         }
         #endif
@@ -25,8 +26,7 @@ struct MapBannerView: UIViewControllerRepresentable {
         banner.rootViewController = controller
         banner.adUnitID = unitID
         banner.delegate = context.coordinator
-        controller.view.addSubview(banner)
-        banner.frame = CGRect(origin: .zero, size: AdSizeBanner.size)
+        controller.install(banner)
         banner.load(Request())
         return controller
     }
@@ -34,6 +34,21 @@ struct MapBannerView: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIViewController, context: Context) {}
 
     func makeCoordinator() -> Coordinator { Coordinator(loaded: $loaded) }
+
+    private final class BannerContainerController: UIViewController {
+        func install(_ banner: UIView) {
+            banner.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(banner)
+            // Pin to the container, not its inherited safe area. SwiftUI already
+            // places the entire footer inside the screen's safe area.
+            NSLayoutConstraint.activate([
+                banner.topAnchor.constraint(equalTo: view.topAnchor),
+                banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                banner.widthAnchor.constraint(equalToConstant: 320),
+                banner.heightAnchor.constraint(equalToConstant: 50)
+            ])
+        }
+    }
 
     final class Coordinator: NSObject, BannerViewDelegate {
         @Binding var loaded: Bool

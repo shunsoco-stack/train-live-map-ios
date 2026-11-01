@@ -1,8 +1,50 @@
 import XCTest
+import UIKit
 
 final class TrainLiveMapUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
+    }
+
+    /// Uses Google's test-device serving on a simulator and the real published UMP form.
+    func testLiveAdvertisingConsentAndBanner() throws {
+        #if targetEnvironment(simulator)
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["TLM_AD_UI_TESTS"] == "1")
+        let app = XCUIApplication()
+        app.launchArguments = ["-AdConsentEEATest", "-AdConsentReset", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        app.launch()
+        let decline = app.webViews.buttons["同意しない"].firstMatch
+        XCTAssertTrue(decline.waitForExistence(timeout: 30), app.debugDescription)
+        decline.tap()
+        // UMP retains an offscreen form for privacy-options reuse. Its controls
+        // remain in the accessibility tree after dismissal.
+        let mapReady = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: app.buttons["railway-filter-button"])
+        XCTAssertEqual(XCTWaiter.wait(for: [mapReady], timeout: 15), .completed)
+
+        app.buttons["このアプリについて"].tap()
+        let privacy = app.buttons["広告のプライバシー設定"]
+        for _ in 0..<5 where !privacy.isHittable { app.swipeUp() }
+        XCTAssertTrue(privacy.isHittable, app.debugDescription)
+        privacy.tap()
+        let consent = app.webViews.buttons["同意"].firstMatch
+        XCTAssertTrue(consent.waitForExistence(timeout: 15), app.debugDescription)
+        consent.tap()
+        let settingsReady = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: privacy)
+        XCTAssertEqual(XCTWaiter.wait(for: [settingsReady], timeout: 15), .completed)
+        app.navigationBars["このアプリについて"].buttons["閉じる"].tap()
+
+        let banner = app.descendants(matching: .any).matching(identifier: "advertising-banner-container").firstMatch
+        XCTAssertTrue(banner.waitForExistence(timeout: 30))
+        XCTAssertEqual(banner.frame.height, 50, accuracy: 1)
+        XCTAssertLessThanOrEqual(banner.frame.maxY, app.frame.maxY)
+        XCTAssertLessThanOrEqual(app.buttons["railway-filter-button"].frame.maxY, banner.frame.minY)
+        let image = XCTAttachment(screenshot: app.screenshot())
+        image.name = "Google test banner after UMP consent"
+        image.lifetime = .keepAlways
+        add(image)
+        #else
+        throw XCTSkip("Live advertising checks only run on simulators, which Google treats as test devices.")
+        #endif
     }
 
     func testBannerStaysBelowAttributionAndMapControls() {
@@ -19,6 +61,9 @@ final class TrainLiveMapUITests: XCTestCase {
             XCTAssertLessThanOrEqual(button.frame.maxY, banner.frame.minY)
         }
         XCTAssertEqual(banner.frame.height, 50, accuracy: 1)
+        XCTAssertLessThanOrEqual(banner.frame.maxY, app.frame.maxY)
+        XCTAssertGreaterThanOrEqual(banner.frame.minX, app.frame.minX)
+        XCTAssertLessThanOrEqual(banner.frame.maxX, app.frame.maxX)
         app.buttons["railway-filter-button"].tap()
         XCTAssertTrue(app.navigationBars["表示する路線"].waitForExistence(timeout: 5))
     }
@@ -117,14 +162,28 @@ final class TrainLiveMapUITests: XCTestCase {
     func testLargeDynamicTypeDarkModeAndPrivacyExplanation() {
         let app = makeApp()
         app.launchArguments += [
+            "-UITestAdBanner",
             "-AppleInterfaceStyle", "Dark",
             "-UIPreferredContentSizeCategoryName",
-            "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge"
+            UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue
         ]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Train Live Map"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.staticTexts["advertising-layout-fixture"].exists)
         XCTAssertFalse(app.buttons["notification-settings-button"].exists)
+        XCTAssertTrue(app.buttons["compact-map-menu"].isHittable)
+        app.buttons["compact-map-menu"].tap()
+        app.buttons["表示する路線"].tap()
+        XCTAssertTrue(app.navigationBars["表示する路線"].waitForExistence(timeout: 8))
+        app.buttons["完了"].tap()
+        app.buttons["data-status-button"].tap()
+        XCTAssertTrue(app.navigationBars["データの状態"].waitForExistence(timeout: 8))
+        app.navigationBars["データの状態"].buttons["閉じる"].tap()
+        let largeMap = XCTAttachment(screenshot: app.screenshot())
+        largeMap.name = "Maximum text size map without advertising"
+        largeMap.lifetime = .keepAlways
+        add(largeMap)
         app.buttons["このアプリについて"].tap()
         XCTAssertTrue(app.navigationBars["このアプリについて"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["JR東日本・関東版（非公式）"].exists)

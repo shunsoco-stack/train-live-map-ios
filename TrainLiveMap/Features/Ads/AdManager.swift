@@ -21,7 +21,18 @@ final class AdManager: ObservableObject {
         preparing = true
         defer { preparing = false }
         do {
-            try await ConsentInformation.shared.requestConsentInfoUpdate(with: RequestParameters())
+            let parameters = RequestParameters()
+            #if DEBUG && targetEnvironment(simulator)
+            if ProcessInfo.processInfo.arguments.contains("-AdConsentEEATest") {
+                let debug = DebugSettings()
+                debug.geography = .EEA
+                parameters.debugSettings = debug
+                if ProcessInfo.processInfo.arguments.contains("-AdConsentReset") {
+                    ConsentInformation.shared.reset()
+                }
+            }
+            #endif
+            try await ConsentInformation.shared.requestConsentInfoUpdate(with: parameters)
             Self.log.info("Consent information updated")
             try await ConsentForm.loadAndPresentIfRequired(from: nil)
             prepared = true

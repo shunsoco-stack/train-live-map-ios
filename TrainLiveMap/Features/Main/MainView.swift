@@ -15,6 +15,8 @@ struct MainView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @StateObject private var adManager = AdManager()
     @State private var railwaySheetPresented = false
@@ -24,6 +26,7 @@ struct MainView: View {
     @State private var trainSearchSheetPresented = false
     @State private var serviceSheetPresented = false
     @State private var legendSheetPresented = false
+    @State private var dataStatusSheetPresented = false
     @State private var pendingSearchedTrainID: String?
     @State private var locationRequestID = 0
     @State private var locationIsRequesting = false
@@ -67,18 +70,17 @@ struct MainView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
-                ViewThatFits(in: .horizontal) {
-                    attributionLinks
-                    attributionLinks.font(.system(size: 9))
-                }
-                if (adManager.canShowBanner && !viewModel.isOffline && scenePhase == .active) || AppConfiguration.isAdvertisingLayoutTest, let unitID = AppConfiguration.current.adMobBannerUnitID {
+                attributionLinks
+                if !dynamicTypeSize.isAccessibilitySize,
+                   verticalSizeClass != .compact,
+                   (adManager.canShowBanner && !viewModel.isOffline && scenePhase == .active) || AppConfiguration.isAdvertisingLayoutTest,
+                   let unitID = AppConfiguration.current.adMobBannerUnitID {
                     MapBannerFooter(unitID: unitID)
                 }
             }
             .frame(maxWidth: .infinity).background(Color(.systemBackground))
+            .fixedSize(horizontal: false, vertical: true)
         }
         .background(Color(.systemBackground))
         .sheet(isPresented: $railwaySheetPresented) {
@@ -121,6 +123,32 @@ struct MainView: View {
         }
         .sheet(isPresented: $legendSheetPresented) {
             TrainMapLegendSheet()
+        }
+        .sheet(isPresented: $dataStatusSheetPresented) {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if let response = viewModel.trainsResponse { DataSourceBadge(response: response) }
+                        if let notice = dataSourceNotice { Text(notice) }
+                        if let error = networkErrorMessage {
+                            ErrorPanel(message: error, onRetry: canRetryNetworkError ? retryNetworkErrors : nil)
+                        }
+                        if shouldShowTrainEmptyState {
+                            Text(trainEmptyTitle).font(.headline)
+                            Text(trainEmptyMessage)
+                            if shouldOfferTrainRetry { Button("再試行", action: retryEmptyState) }
+                        }
+                        DataUpdatePanel(viewModel: viewModel)
+                    }.padding()
+                }
+                .navigationTitle("データの状態")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("閉じる") { dataStatusSheetPresented = false }
+                    }
+                }
+            }
         }
         .sheet(item: selectedTrainBinding) { train in
             TrainDetailSheet(train: train)
@@ -363,13 +391,18 @@ struct MainView: View {
     }
 
     private var attributionLinks: some View {
-        HStack(spacing: 6) {
-            Link("OpenFreeMap", destination: URL(string: "https://openfreemap.org")!)
-            Link("© OpenMapTiles", destination: URL(string: "https://openmaptiles.org")!)
-            Link("© OpenStreetMap", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) { attributionItems }
+            VStack(spacing: 2) { attributionItems }
         }
         .font(.caption2).frame(minHeight: 44)
         .accessibilityIdentifier("map-attribution")
+    }
+
+    @ViewBuilder private var attributionItems: some View {
+        Link("OpenFreeMap", destination: URL(string: "https://openfreemap.org")!)
+        Link("© OpenMapTiles", destination: URL(string: "https://openmaptiles.org")!)
+        Link("© OpenStreetMap", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
     }
 
     private var header: some View {
@@ -436,6 +469,73 @@ struct MainView: View {
     }
 
     private var mapOverlay: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize || verticalSizeClass == .compact {
+                compactMapOverlay
+            } else {
+                standardMapOverlay
+            }
+        }
+    }
+
+    private var compactDataLabel: String {
+        if AppConfiguration.isUITesting || viewModel.trainsResponse?.isMock == true || viewModel.trainsResponse?.source == .mock {
+            return "モックデータ"
+        }
+        if viewModel.isOffline { return "オフライン" }
+        if viewModel.trainsAreStale { return "古いデータ" }
+        return "推定位置・データ"
+    }
+
+    private var compactMapOverlay: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Button { dataStatusSheetPresented = true } label: {
+                    Label(compactDataLabel, systemImage: "info.circle")
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("data-status-button")
+                Spacer(minLength: 0)
+                MapCircleButton(
+                    systemName: "location.fill", foreground: .primary,
+                    background: Color(.systemBackground), label: "現在地付近へ地図を移動",
+                    isEnabled: !locationIsRequesting
+                ) {
+                    locationStatusMessage = nil
+                    locationRequestID &+= 1
+                }
+                .accessibilityIdentifier("current-location-button")
+            }
+            if !viewModel.visibleServiceStatuses.isEmpty {
+                Button("運行情報") { serviceSheetPresented = true }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("service-status-button")
+            }
+            Spacer(minLength: 0)
+            Menu {
+                Button("表示する路線", systemImage: "line.3.horizontal.decrease") { railwaySheetPresented = true }
+                Button("列車番号で検索", systemImage: "magnifyingglass") { trainSearchSheetPresented = true }
+                Button("みんなの運行情報", systemImage: "person.3.fill") { communitySheetPresented = true }
+                Button("列車状態と位置の凡例", systemImage: "questionmark.circle") { legendSheetPresented = true }
+                Button(preferences.favoritesOnly ? "お気に入りのみを解除" : "お気に入り路線だけ表示", systemImage: "star") {
+                    preferences.setFavoritesOnly(!preferences.favoritesOnly)
+                }
+                Picker("列車の表示", selection: $viewModel.selectedFilter) {
+                    ForEach(TrainFilter.allCases) { filter in Text(filter.label).tag(filter) }
+                }
+            } label: {
+                Label("地図の操作", systemImage: "line.3.horizontal.decrease")
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .frame(minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("compact-map-menu")
+        }
+        .padding(9)
+    }
+
+    private var standardMapOverlay: some View {
         VStack(spacing: 7) {
             HStack(alignment: .top, spacing: 7) {
                 if let response = viewModel.trainsResponse {
@@ -492,7 +592,7 @@ struct MainView: View {
                     .frame(maxWidth: 600)
             }
 
-            Spacer(minLength: 24)
+            Spacer(minLength: 0)
 
             if shouldShowTrainEmptyState {
                 TrainEmptyStateView(
@@ -510,7 +610,7 @@ struct MainView: View {
                 .padding(.horizontal, 24)
             }
 
-            Spacer(minLength: 24)
+            Spacer(minLength: 0)
 
             HStack(alignment: .bottom, spacing: 7) {
                 VStack(alignment: .leading, spacing: 7) {
