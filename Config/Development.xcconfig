@@ -1,5 +1,7 @@
 #include "Base.xcconfig"
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG
+// Google automatically treats simulators as test devices.
+ADMOB_BANNER_UNIT_ID[sdk=iphonesimulator*] = ca-app-pub-3013767899579778/3017943283
 APS_ENVIRONMENT = development
 // Override API_BASE_URL with your HTTPS development server in Local.xcconfig.
 #include? "Local.xcconfig"

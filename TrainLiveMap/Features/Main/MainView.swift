@@ -16,6 +16,7 @@ struct MainView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @StateObject private var adManager = AdManager()
     @State private var railwaySheetPresented = false
     @State private var communitySheetPresented = false
     @State private var notificationSheetPresented = false
@@ -68,9 +69,14 @@ struct MainView: View {
 
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ViewThatFits(in: .horizontal) {
-                attributionLinks
-                attributionLinks.font(.system(size: 9))
+            VStack(spacing: 0) {
+                ViewThatFits(in: .horizontal) {
+                    attributionLinks
+                    attributionLinks.font(.system(size: 9))
+                }
+                if (adManager.canShowBanner && !viewModel.isOffline && scenePhase == .active) || AppConfiguration.isAdvertisingLayoutTest, let unitID = AppConfiguration.current.adMobBannerUnitID {
+                    MapBannerFooter(unitID: unitID)
+                }
             }
             .frame(maxWidth: .infinity).background(Color(.systemBackground))
         }
@@ -99,7 +105,7 @@ struct MainView: View {
             )
         }
         .sheet(isPresented: $aboutSheetPresented) {
-            AboutSheet()
+            AboutSheet(adManager: adManager)
         }
         .sheet(
             isPresented: $trainSearchSheetPresented,
@@ -143,6 +149,9 @@ struct MainView: View {
             Task {
                 await notificationManager.syncSubscriptions(lineIDs: lineIDs, settings: preferences.notificationSettings)
             }
+        }
+        .task(id: scenePhase) {
+            if scenePhase == .active { await adManager.prepare() }
         }
         .onDisappear {
             locationFeedbackDismissTask?.cancel()

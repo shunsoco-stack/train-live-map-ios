@@ -16,6 +16,9 @@ configs:
   Production: release
 
 packages:
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
+    exactVersion: 13.11.0
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution.git
     exactVersion: 6.28.0
@@ -41,6 +44,12 @@ targets:
           - TrainLiveMap.entitlements
       - path: TrainLiveMap/Resources
         buildPhase: resources
+    preBuildScripts:
+      - name: Validate AdMob configuration
+        script: /bin/sh "$SRCROOT/scripts/validate-admob.sh"
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - "$(SRCROOT)/scripts/validate-admob.sh"
     configFiles:
       Debug: Config/Debug.xcconfig
       Release: Config/Production.xcconfig
@@ -63,6 +72,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: TrainLiveMap/TrainLiveMap.entitlements
         OTHER_LDFLAGS: "$(inherited) -ObjC"
     dependencies:
+      - package: GoogleMobileAds
+        product: GoogleMobileAds
       - package: MapLibre
         product: MapLibre
 

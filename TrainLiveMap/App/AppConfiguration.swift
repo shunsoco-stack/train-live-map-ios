@@ -41,8 +41,17 @@ struct AppConfiguration: Equatable {
         guard let adMobAppID, let adMobBannerUnitID else {
             return false
         }
-        return adMobAppID.hasPrefix("ca-app-pub-")
-            && adMobBannerUnitID.hasPrefix("ca-app-pub-")
+        return adMobAppID.wholeMatch(of: #/ca-app-pub-[0-9]{16}~[0-9]{10}/#) != nil
+            && adMobBannerUnitID.wholeMatch(of: #/ca-app-pub-[0-9]{16}/[0-9]{10}/#) != nil
+            && adMobAppID.prefix(27) == adMobBannerUnitID.prefix(27)
+    }
+
+    static var isAdvertisingLayoutTest: Bool {
+        #if DEBUG && targetEnvironment(simulator)
+        return isUITesting && ProcessInfo.processInfo.arguments.contains("-UITestAdBanner")
+        #else
+        return false
+        #endif
     }
 
     static var isRunningTests: Bool {

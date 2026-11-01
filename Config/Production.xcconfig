@@ -1,4 +1,5 @@
 #include "Base.xcconfig"
+ADMOB_BANNER_UNIT_ID = ca-app-pub-3013767899579778/3017943283
 SWIFT_COMPILATION_MODE = wholemodule
 APS_ENVIRONMENT = production
 #include? "Signing.local.xcconfig"

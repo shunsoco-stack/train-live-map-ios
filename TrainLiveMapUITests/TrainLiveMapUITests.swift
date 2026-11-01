@@ -5,6 +5,24 @@ final class TrainLiveMapUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    func testBannerStaysBelowAttributionAndMapControls() {
+        let app = makeApp()
+        app.launchArguments.append("-UITestAdBanner")
+        app.launch()
+        let banner = app.staticTexts["advertising-layout-fixture"]
+        XCTAssertTrue(banner.waitForExistence(timeout: 10))
+        let attribution = app.descendants(matching: .any).matching(identifier: "map-attribution").firstMatch
+        XCTAssertLessThanOrEqual(attribution.frame.maxY, banner.frame.minY + 1)
+        for id in ["railway-filter-button", "current-location-button", "community-report-button"] {
+            let button = app.buttons[id]
+            XCTAssertTrue(button.isHittable)
+            XCTAssertLessThanOrEqual(button.frame.maxY, banner.frame.minY)
+        }
+        XCTAssertEqual(banner.frame.height, 50, accuracy: 1)
+        app.buttons["railway-filter-button"].tap()
+        XCTAssertTrue(app.navigationBars["表示する路線"].waitForExistence(timeout: 5))
+    }
+
     func testMainMapControlsAccessibilitySmoke() {
         let app = makeApp()
         app.launch()

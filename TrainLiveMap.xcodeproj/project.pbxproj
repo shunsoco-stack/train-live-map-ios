@@ -15,6 +15,7 @@
 		13F3C73EEC32010337F1FEEF /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DA9CE06461A89898116667 /* APIClient.swift */; };
 		1965D0F46B05A9C0A3C8DC12 /* CommunityReportLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523C1288DAFA0BF14A828807 /* CommunityReportLogic.swift */; };
 		1DD53A42818A6ADE02516159 /* MPLUSRounded1c-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1CA1FC827BFB4B2EBE30D5A0 /* MPLUSRounded1c-Regular.ttf */; };
+		1FD71FD986548D44665181F7 /* AdManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07BCEA78C7CE83D33A71AD4 /* AdManager.swift */; };
 		219C3B2802CC4DF6A17D1D5C /* RailwayPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F72121FC00230F0E72FB37B0 /* RailwayPreferencesTests.swift */; };
 		275E62BA984BF91BCEB27CF1 /* TrainLiveMapUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CBCA663B48E357A1E461A2 /* TrainLiveMapUITests.swift */; };
 		279DB59F6877B7A3A41904A9 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B655443EA930B6FFE9F6DA9 /* Theme.swift */; };
@@ -30,10 +31,11 @@
 		49C28D5976908A4A54E668DA /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85370A38E419B1DA99A072D1 /* AppConfiguration.swift */; };
 		4EFAA302FD9D801AA37C73DB /* community-reports.json in Resources */ = {isa = PBXBuildFile; fileRef = CD8A7F552D5236493CA5C2B2 /* community-reports.json */; };
 		5166E64035E4F4FAE856C72E /* TrainEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BB229D4A4345A78958F4BCE /* TrainEmptyStateView.swift */; };
+		530C716E7D262FA41B842366 /* MapBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C8F21FF856C04FA4B838640 /* MapBannerView.swift */; };
 		53260E059CBA86E767002FBC /* trains.json in Resources */ = {isa = PBXBuildFile; fileRef = 76F8408BE82CF87E5F8F27CA /* trains.json */; };
 		5C0D96CE211DED92DAF48FCE /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38B926A2A4EE110B2D2AB1C /* NotificationManager.swift */; };
 		5C51603C3922C5B86AF0D235 /* PolylineGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D589F67EC30A20FA71C7AB18 /* PolylineGeometry.swift */; };
-		67EE69EEDF3C47B9CDA5C8B9 /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 1B01390260D5E140077F3846 /* MapLibre */; };
+		67EE69EEDF3C47B9CDA5C8B9 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = E35D3977911DFE0141A92BA8 /* GoogleMobileAds */; };
 		6B8606CE987C0FDC7B2F105A /* ServiceStatusLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8477EC24BD25AC449ACF901D /* ServiceStatusLogic.swift */; };
 		6D55E61FEC9AF480EAFA978B /* TrainNumberSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAB19B54BCBC7D8D06AE755 /* TrainNumberSearchSheet.swift */; };
 		71C5BC71C6198FBCEA43AF40 /* service-status.json in Resources */ = {isa = PBXBuildFile; fileRef = D069AED64532F5B8ECB2D3C4 /* service-status.json */; };
@@ -58,6 +60,7 @@
 		B7A2EF4E9E4B03385443CE0A /* APIJSONDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F436116A39E47EC5A2210464 /* APIJSONDecodingTests.swift */; };
 		BEA21559109219CCD0BB3A01 /* MPLUSRounded1c-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA92105E9BB69FA7DDA5C78E /* MPLUSRounded1c-Bold.ttf */; };
 		BFF45D872B2991C9874AC194 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 626859E43C0D648F4CE638FA /* MainView.swift */; };
+		C4009C20B0F0BD58446506B6 /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 1B01390260D5E140077F3846 /* MapLibre */; };
 		CEC90428CC8245842BC4B199 /* TrainNumberSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA65A1D27ADA9561CE3F35D5 /* TrainNumberSearchTests.swift */; };
 		D4A9F531F8653E25DC69A20A /* MainViewModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E139C842F62E69C9F2C78BB3 /* MainViewModelPhaseTests.swift */; };
 		D7320785DC9C22EF1B41DC12 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FEE49A5E5E2D989FF11D26 /* Models.swift */; };
@@ -70,6 +73,7 @@
 		EDDEAAAD6FDFECD4E1B9503E /* TrainFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD5AF1995AA7D50A1A5A85F /* TrainFilterTests.swift */; };
 		EFFC60D15163EF4F8D54C9F0 /* NotificationSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA98AF5799F8124217AC343 /* NotificationSettingsSheet.swift */; };
 		F311C6D8959124E62C03B64F /* AboutSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E5BDE114A4728883E407706 /* AboutSheet.swift */; };
+		F705DF4D0139E9B1A5B936E1 /* AdvertisingConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E66B11E0C6FBE2E01ABB187 /* AdvertisingConfigurationTests.swift */; };
 		F9515845A8BCED8BC7C564AC /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1293BC15A47A0B568D25785 /* UserPreferences.swift */; };
 		FBE6FF3E4CD70F1F3EEDC3B0 /* HTTPSOnlySessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F306C2771CB7C016E2376AE /* HTTPSOnlySessionDelegate.swift */; };
 		FC4EFFB045D711D6EC7BFEBF /* TrainRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE699B8CC566782A5836F7DC /* TrainRepository.swift */; };
@@ -102,7 +106,9 @@
 		1BA98AF5799F8124217AC343 /* NotificationSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsSheet.swift; sourceTree = "<group>"; };
 		1BB229D4A4345A78958F4BCE /* TrainEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainEmptyStateView.swift; sourceTree = "<group>"; };
 		1CA1FC827BFB4B2EBE30D5A0 /* MPLUSRounded1c-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MPLUSRounded1c-Regular.ttf"; sourceTree = "<group>"; };
+		1E66B11E0C6FBE2E01ABB187 /* AdvertisingConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvertisingConfigurationTests.swift; sourceTree = "<group>"; };
 		27D2D8E94593057914ECFAEE /* Staging.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Staging.xcconfig; sourceTree = "<group>"; };
+		2C8F21FF856C04FA4B838640 /* MapBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapBannerView.swift; sourceTree = "<group>"; };
 		2E5BDE114A4728883E407706 /* AboutSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSheet.swift; sourceTree = "<group>"; };
 		2F306C2771CB7C016E2376AE /* HTTPSOnlySessionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPSOnlySessionDelegate.swift; sourceTree = "<group>"; };
 		361CDE2D98F4C758799C6F4F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -142,6 +148,7 @@
 		B5CA1709EB677EAAD83A2A09 /* TrainIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainIconView.swift; sourceTree = "<group>"; };
 		BA65A1D27ADA9561CE3F35D5 /* TrainNumberSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainNumberSearchTests.swift; sourceTree = "<group>"; };
 		BA968A014837E87B13E20E3D /* railways.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = railways.json; sourceTree = "<group>"; };
+		C07BCEA78C7CE83D33A71AD4 /* AdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdManager.swift; sourceTree = "<group>"; };
 		C1293BC15A47A0B568D25785 /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
 		CC475DCD427BFED3E0A15CE5 /* TrainPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainPresentationTests.swift; sourceTree = "<group>"; };
 		CD8A7F552D5236493CA5C2B2 /* community-reports.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "community-reports.json"; sourceTree = "<group>"; };
@@ -174,7 +181,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				67EE69EEDF3C47B9CDA5C8B9 /* MapLibre in Frameworks */,
+				67EE69EEDF3C47B9CDA5C8B9 /* GoogleMobileAds in Frameworks */,
+				C4009C20B0F0BD58446506B6 /* MapLibre in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -358,6 +366,7 @@
 		B798CDA49CC80DF3379558EF /* TrainLiveMapTests */ = {
 			isa = PBXGroup;
 			children = (
+				1E66B11E0C6FBE2E01ABB187 /* AdvertisingConfigurationTests.swift */,
 				0BE6B1076862837DB1237088 /* APIClientSecurityTests.swift */,
 				F436116A39E47EC5A2210464 /* APIJSONDecodingTests.swift */,
 				51BFFF84654246FBD3F8DAF9 /* AppConfigurationSecurityTests.swift */,
@@ -432,6 +441,8 @@
 		F5E767F5397B91685999532C /* Ads */ = {
 			isa = PBXGroup;
 			children = (
+				C07BCEA78C7CE83D33A71AD4 /* AdManager.swift */,
+				2C8F21FF856C04FA4B838640 /* MapBannerView.swift */,
 			);
 			path = Ads;
 			sourceTree = "<group>";
@@ -461,6 +472,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = DFAD6FD34011DDC994EF623E /* Build configuration list for PBXNativeTarget "TrainLiveMap" */;
 			buildPhases = (
+				52A1771FEE218B41C08FD6C5 /* Validate AdMob configuration */,
 				C3B5E2EAB51C126584758B2D /* Sources */,
 				04398ED2A1D1621DD78BAE72 /* Resources */,
 				2E4723E08201928C11D8574E /* Frameworks */,
@@ -471,6 +483,7 @@
 			);
 			name = TrainLiveMap;
 			packageProductDependencies = (
+				E35D3977911DFE0141A92BA8 /* GoogleMobileAds */,
 				1B01390260D5E140077F3846 /* MapLibre */,
 			);
 			productName = TrainLiveMap;
@@ -524,6 +537,7 @@
 			mainGroup = 3A7CCE301209F8527A53ACD3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				195ECEEC35001C6B49C0FC41 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 				BFE8300D61038B137DAFEE52 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -566,6 +580,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		52A1771FEE218B41C08FD6C5 /* Validate AdMob configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/validate-admob.sh",
+			);
+			name = "Validate AdMob configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"$SRCROOT/scripts/validate-admob.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5B3B87EFAE9BAE871F35CBCF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -581,6 +618,7 @@
 			files = (
 				13F3C73EEC32010337F1FEEF /* APIClient.swift in Sources */,
 				F311C6D8959124E62C03B64F /* AboutSheet.swift in Sources */,
+				1FD71FD986548D44665181F7 /* AdManager.swift in Sources */,
 				A33D5C586FA365D28FF492AD /* AppAppearance.swift in Sources */,
 				49C28D5976908A4A54E668DA /* AppConfiguration.swift in Sources */,
 				DB717D095BC974F3E37639DD /* CacheStore.swift in Sources */,
@@ -591,6 +629,7 @@
 				9693C759FAC965DC9D837A32 /* KeychainSecureStringStore.swift in Sources */,
 				BFF45D872B2991C9874AC194 /* MainView.swift in Sources */,
 				D8D4FF02A78077C927238E3F /* MainViewModel.swift in Sources */,
+				530C716E7D262FA41B842366 /* MapBannerView.swift in Sources */,
 				DC62FB89299362AB94790976 /* MapLibreTrainMap.swift in Sources */,
 				D7320785DC9C22EF1B41DC12 /* Models.swift in Sources */,
 				80461A4CFB59842F95B4A76C /* NetworkConnectivityMonitor.swift in Sources */,
@@ -622,6 +661,7 @@
 			files = (
 				29160480E321C164B12C78F2 /* APIClientSecurityTests.swift in Sources */,
 				B7A2EF4E9E4B03385443CE0A /* APIJSONDecodingTests.swift in Sources */,
+				F705DF4D0139E9B1A5B936E1 /* AdvertisingConfigurationTests.swift in Sources */,
 				025FF323BDBB1F5F94CFE05E /* AppConfigurationSecurityTests.swift in Sources */,
 				9BF2EF41B22771755F4AE93D /* CommunityReportLogicTests.swift in Sources */,
 				3D3D32AF3ADB8EE14A6C519E /* MainViewModelCacheTests.swift in Sources */,
@@ -1327,6 +1367,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		195ECEEC35001C6B49C0FC41 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = exactVersion;
+				version = 13.11.0;
+			};
+		};
 		BFE8300D61038B137DAFEE52 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/maplibre/maplibre-gl-native-distribution.git";
@@ -1342,6 +1390,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BFE8300D61038B137DAFEE52 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */;
 			productName = MapLibre;
+		};
+		E35D3977911DFE0141A92BA8 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 195ECEEC35001C6B49C0FC41 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

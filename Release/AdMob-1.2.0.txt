@@ -1,0 +1,49 @@
+Train Live Map 1.2.0 (5) — AdMob banner integration, 2026-11-01
+
+Placement
+A centered 320 × 50 standard banner with 8pt top separation below the map attribution row within the safe area. Map controls occupy separate layout space. No-fill and consent failures leave the map usable.
+
+Account
+App ca-app-pub-3013767899579778~7352774110
+Banner ca-app-pub-3013767899579778/3017943283
+AdMob app linked to Apple ID 6826815750.
+Web PR #11 supplies /app-ads.txt and version-specific privacy text.
+https://github.com/shunsoco-stack/train-live-map/pull/11
+Production merge adc2c87b18d7140f237575bcda344e152569ede9.
+The public seller record was verified over HTTPS.
+
+Privacy configuration
+Google Mobile Ads 13.11.0 and UMP 3.1.0 via SPM.
+Each cold launch updates UMP consent before starting Mobile Ads. Required forms are presented and canRequestAds gates SDK initialization and banner creation.
+Required privacy options can be reopened from About.
+Publisher privacy personalization and publisher first-party IDs are disabled.
+Only general-audience ad content is requested.
+No ATT prompt or mediation SDK. GPS, route selections and report IDs are not supplied to Google.
+
+App Store privacy update draft
+Retain the existing backend disclosures for Device ID, Other User Content, Performance Data and Other Diagnostic Data.
+Google documents IP-derived approximate location, device identifiers, advertising data, product interactions and crash/performance/other diagnostics.
+Relevant purposes include Third-Party Advertising, Analytics and App Functionality for UMP.
+Review the combined manifests and final account configuration before publishing Apple answers. The SDK default manifest marks Device ID linked/tracking, including optional personalized features. Do not copy those defaults blindly or claim non-personalized ads collect no data.
+IDFA is unavailable without ATT. Personalization and publisher first-party IDs are disabled in this implementation.
+
+Validation and outstanding checks
+89 existing unit tests and the map-control UI smoke test passed.
+Advertising ID validation passed. Final banner placement checks are recorded below.
+Production device build passed with CODE_SIGNING_ALLOWED=NO.
+Signed Archive failed because this Mac exposes no valid Apple Distribution identity/private key for LC47V8NZP6.
+Actual banner delivery is not yet verified. UMP returned documented configuration error 4. The AdMob message page remains loading inside its iframe after reload; direct embedded-page display works but its create action does not navigate.
+Google still reports app-ads.txt verification pending/failed despite the public HTTPS record matching its exact requested line.
+
+Release gates
+Complete the UMP message configuration and verify acceptance, refusal and reopening.
+Complete AdMob ownership verification and readiness review.
+Update Apple privacy answers and review notes for 1.2.0 before submission.
+Restore access to an existing Apple Distribution certificate and private key for Team LC47V8NZP6. New credential creation requires explicit approval.
+Obtain owner approval for submission and release of this new version after validation.
+
+References
+https://developers.google.com/admob/ios/privacy
+https://developers.google.com/admob/ios/privacy/data-disclosure
+https://developers.google.com/admob/ios/targeting
+https://developers.google.com/admob/ios/test-ads

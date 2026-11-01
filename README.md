@@ -265,7 +265,7 @@ Web PR #9で `/api/apns/devices` のPOST/DELETEと、認証付きの `/api/apns/
 
 ## 広告
 
-初回リリースに広告はありません。Google Mobile Ads、UMP、広告ID、SKAdNetwork設定を除去しました。ATTの要求も行いません。
+公開済み1.1.0は広告なしです。1.2.0では地図の帰属表示の下に320×50ptのAdMobバナーを追加します。Google Mobile AdsとUMPはSPMで管理し、同意確認後に非パーソナライズ広告を読み込みます。詳細と公開前の確認項目はRelease/AdMob-1.2.0.txtを参照してください。
 
 ## デザインとアクセシビリティ
 
