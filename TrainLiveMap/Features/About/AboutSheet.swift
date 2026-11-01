@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AboutSheet: View {
+    @ObservedObject var adManager: AdManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
@@ -66,6 +67,17 @@ struct AboutSheet: View {
                     .foregroundStyle(.secondary)
                 }
 
+                if AppConfiguration.current.isAdvertisingConfigured {
+                    Section("広告") {
+                        Text("地図の下にGoogle AdMobの非パーソナライズ広告を表示します。")
+                        if adManager.privacyOptionsRequired {
+                            Button("広告のプライバシー設定") {
+                                Task { await adManager.presentPrivacyOptions() }
+                            }
+                            if let message = adManager.privacyError { Text(message) }
+                        }
+                    }
+                }
                 Section("地図の帰属") {
                     Link("OpenFreeMap", destination: URL(string: "https://openfreemap.org")!)
                     Link("© OpenMapTiles", destination: URL(string: "https://openmaptiles.org")!)
